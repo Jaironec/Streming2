@@ -1,7 +1,7 @@
 const express = require('express');
 const { body, validationResult } = require('express-validator');
 const { Order, Payment, Profile, Account } = require('../models');
-const { authenticateToken, requireClient, requireOwnership } = require('../middleware/auth');
+const { authenticateToken, requireClient, requireOwnership, requireAdmin } = require('../middleware/auth');
 const ocrService = require('../services/ocrService');
 const whatsappService = require('../services/whatsappService');
 const pricingService = require('../services/pricingService');
@@ -319,6 +319,303 @@ router.put('/:id/upload-proof', requireClient, requireOwnership('order'), async 
     res.status(500).json({
       error: 'Error interno del servidor',
       message: 'No se pudo procesar el comprobante',
+      code: 'INTERNAL_ERROR'
+    });
+  }
+});
+
+// ===== ENDPOINTS DE ADMINISTRACIÓN =====
+
+// PUT /api/orders/:id/approve - Aprobar orden (ADMIN)
+router.put('/:id/approve', requireAdmin, async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { comentarios_admin, metodo_pago, referencia_pago } = req.body;
+
+    const order = await Order.findByPk(id);
+    if (!order) {
+      return res.status(404).json({
+        error: 'Orden no encontrada',
+        code: 'ORDER_NOT_FOUND'
+      });
+    }
+
+    // Verificar que la orden esté en estado válido para aprobar
+    if (!['pendiente', 'validando'].includes(order.estado)) {
+      return res.status(400).json({
+        error: 'Estado de orden inválido',
+        message: `No se puede aprobar una orden en estado: ${order.estado}`,
+        code: 'INVALID_ORDER_STATE'
+      });
+    }
+
+    // Aprobar la orden
+    order.estado = 'aprobado';
+    order.admin_id = req.user.id;
+    order.fecha_aprobacion = new Date();
+    order.comentarios_admin = comentarios_admin || 'Orden aprobada por administrador';
+    order.metodo_pago = metodo_pago || 'Transferencia bancaria';
+    order.referencia_pago = referencia_pago || 'N/A';
+
+    // Generar código único de orden
+    order.codigo_orden = `ORD-${Date.now()}-${Math.random().toString(36).substr(2, 5).toUpperCase()}`;
+
+    // Calcular fecha de vencimiento
+    order.fecha_vencimiento = new Date();
+    order.fecha_vencimiento.setMonth(order.fecha_vencimiento.getMonth() + order.meses);
+
+    await order.save();
+
+    // Asignar perfiles automáticamente
+    try {
+      await assignProfilesToOrder(order, { id: order.user_id });
+      
+      // Enviar credenciales por WhatsApp
+      const user = await require('../models').User.findByPk(order.user_id);
+      if (user) {
+        await sendAccessCredentials(order, user);
+      }
+
+      res.json({
+        message: 'Orden aprobada exitosamente',
+        order: {
+          id: order.id,
+          estado: order.estado,
+          codigo_orden: order.codigo_orden,
+          fecha_aprobacion: order.fecha_aprobacion,
+          fecha_vencimiento: order.fecha_vencimiento,
+          comentarios_admin: order.comentarios_admin
+        },
+        code: 'ORDER_APPROVED'
+      });
+
+    } catch (assignmentError) {
+      console.error('Error al asignar perfiles:', assignmentError);
+      
+      // Marcar como error pero mantener aprobada
+      order.comentarios_admin = `${order.comentarios_admin} - ERROR: ${assignmentError.message}`;
+      await order.save();
+
+      res.json({
+        message: 'Orden aprobada pero con error en asignación de perfiles',
+        order: {
+          id: order.id,
+          estado: order.estado,
+          codigo_orden: order.codigo_orden,
+          fecha_aprobacion: order.fecha_aprobacion,
+          comentarios_admin: order.comentarios_admin
+        },
+        warning: 'Revisar asignación de perfiles manualmente',
+        code: 'ORDER_APPROVED_WITH_WARNING'
+      });
+    }
+
+  } catch (error) {
+    console.error('Error al aprobar orden:', error);
+    res.status(500).json({
+      error: 'Error interno del servidor',
+      message: 'No se pudo aprobar la orden',
+      code: 'INTERNAL_ERROR'
+    });
+  }
+});
+
+// PUT /api/orders/:id/reject - Rechazar orden (ADMIN)
+router.put('/:id/reject', requireAdmin, async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { comentarios_admin } = req.body;
+
+    if (!comentarios_admin) {
+      return res.status(400).json({
+        error: 'Comentarios requeridos',
+        message: 'Debe proporcionar un motivo para el rechazo',
+        code: 'COMMENTS_REQUIRED'
+      });
+    }
+
+    const order = await Order.findByPk(id);
+    if (!order) {
+      return res.status(404).json({
+        error: 'Orden no encontrada',
+        code: 'ORDER_NOT_FOUND'
+      });
+    }
+
+    // Verificar que la orden esté en estado válido para rechazar
+    if (!['pendiente', 'validando'].includes(order.estado)) {
+      return res.status(400).json({
+        error: 'Estado de orden inválido',
+        message: `No se puede rechazar una orden en estado: ${order.estado}`,
+        code: 'INVALID_ORDER_STATE'
+      });
+    }
+
+    // Rechazar la orden
+    order.estado = 'rechazado';
+    order.admin_id = req.user.id;
+    order.fecha_aprobacion = new Date();
+    order.comentarios_admin = comentarios_admin;
+
+    await order.save();
+
+    // Enviar notificación por WhatsApp
+    try {
+      const user = await require('../models').User.findByPk(order.user_id);
+      if (user) {
+        await whatsappService.sendOrderRejectionNotification(
+          user.whatsapp,
+          order,
+          comentarios_admin
+        );
+      }
+    } catch (whatsappError) {
+      console.error('Error al enviar notificación WhatsApp:', whatsappError);
+    }
+
+    res.json({
+      message: 'Orden rechazada exitosamente',
+      order: {
+        id: order.id,
+        estado: order.estado,
+        fecha_aprobacion: order.fecha_aprobacion,
+        comentarios_admin: order.comentarios_admin
+      },
+      code: 'ORDER_REJECTED'
+    });
+
+  } catch (error) {
+    console.error('Error al rechazar orden:', error);
+    res.status(500).json({
+      error: 'Error interno del servidor',
+      message: 'No se pudo rechazar la orden',
+      code: 'INTERNAL_ERROR'
+    });
+  }
+});
+
+// PUT /api/orders/:id/cancel - Cancelar orden (CLIENTE)
+router.put('/:id/cancel', requireClient, requireOwnership('order'), async (req, res) => {
+  try {
+    const order = req.resource;
+    
+    // Solo se pueden cancelar órdenes pendientes
+    if (order.estado !== 'pendiente') {
+      return res.status(400).json({
+        error: 'Orden no cancelable',
+        message: 'Solo se pueden cancelar órdenes pendientes',
+        code: 'ORDER_NOT_CANCELLABLE'
+      });
+    }
+
+    order.estado = 'cancelado';
+    order.comentarios_admin = 'Cancelada por el cliente';
+    await order.save();
+
+    res.json({
+      message: 'Orden cancelada exitosamente',
+      order: {
+        id: order.id,
+        estado: order.estado,
+        comentarios_admin: order.comentarios_admin
+      },
+      code: 'ORDER_CANCELLED'
+    });
+
+  } catch (error) {
+    console.error('Error al cancelar orden:', error);
+    res.status(500).json({
+      error: 'Error interno del servidor',
+      message: 'No se pudo cancelar la orden',
+      code: 'INTERNAL_ERROR'
+    });
+  }
+});
+
+// GET /api/orders/admin/dashboard - Dashboard de administración (ADMIN)
+router.get('/admin/dashboard', requireAdmin, async (req, res) => {
+  try {
+    // Estadísticas generales
+    const totalOrders = await Order.count();
+    const pendingOrders = await Order.count({ where: { estado: 'pendiente' } });
+    const validatingOrders = await Order.count({ where: { estado: 'validando' } });
+    const approvedOrders = await Order.count({ where: { estado: 'aprobado' } });
+    const rejectedOrders = await Order.count({ where: { estado: 'rechazado' } });
+    const cancelledOrders = await Order.count({ where: { estado: 'cancelado' } });
+
+    // Órdenes recientes
+    const recentOrders = await Order.findAll({
+      include: [{
+        model: require('../models').User,
+        as: 'user',
+        attributes: ['id', 'nombre', 'email', 'whatsapp']
+      }],
+      order: [['fecha_creacion', 'DESC']],
+      limit: 10
+    });
+
+    // Órdenes pendientes de revisión
+    const ordersNeedingReview = await Order.findAll({
+      where: {
+        estado: ['pendiente', 'validando']
+      },
+      include: [{
+        model: require('../models').User,
+        as: 'user',
+        attributes: ['id', 'nombre', 'email', 'whatsapp']
+      }],
+      order: [['fecha_creacion', 'ASC']]
+    });
+
+    res.json({
+      dashboard: {
+        statistics: {
+          total: totalOrders,
+          pending: pendingOrders,
+          validating: validatingOrders,
+          approved: approvedOrders,
+          rejected: rejectedOrders,
+          cancelled: cancelledOrders
+        },
+        recentOrders: recentOrders.map(order => ({
+          id: order.id,
+          servicio: order.servicio,
+          perfiles: order.perfiles,
+          meses: order.meses,
+          monto: order.monto,
+          estado: order.estado,
+          fecha_creacion: order.fecha_creacion,
+          user: order.user ? {
+            id: order.user.id,
+            nombre: order.user.nombre,
+            email: order.user.email,
+            whatsapp: order.user.whatsapp
+          } : null
+        })),
+        ordersNeedingReview: ordersNeedingReview.map(order => ({
+          id: order.id,
+          servicio: order.servicio,
+          perfiles: order.perfiles,
+          meses: order.meses,
+          monto: order.monto,
+          estado: order.estado,
+          fecha_creacion: order.fecha_creacion,
+          user: order.user ? {
+            id: order.user.id,
+            nombre: order.user.nombre,
+            email: order.user.email,
+            whatsapp: order.user.whatsapp
+          } : null
+        }))
+      },
+      code: 'DASHBOARD_RETRIEVED'
+    });
+
+  } catch (error) {
+    console.error('Error al obtener dashboard:', error);
+    res.status(500).json({
+      error: 'Error interno del servidor',
+      message: 'No se pudo obtener el dashboard',
       code: 'INTERNAL_ERROR'
     });
   }

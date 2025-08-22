@@ -1,7 +1,25 @@
 const jwt = require('jsonwebtoken');
 const { User } = require('../models');
 
-// Middleware de autenticación principal
+// ===== BLACKLIST DE TOKENS INVALIDADOS =====
+// En producción, esto debería estar en Redis o base de datos
+const tokenBlacklist = new Set();
+
+// Función para invalidar token
+const invalidateToken = (token) => {
+  tokenBlacklist.add(token);
+  // Limpiar tokens antiguos cada hora (simular expiración)
+  setTimeout(() => {
+    tokenBlacklist.delete(token);
+  }, 60 * 60 * 1000);
+};
+
+// Función para verificar si un token está invalidado
+const isTokenInvalidated = (token) => {
+  return tokenBlacklist.has(token);
+};
+
+// Middleware de autenticación principal mejorado
 const authenticateToken = async (req, res, next) => {
   try {
     const authHeader = req.headers['authorization'];
@@ -12,6 +30,15 @@ const authenticateToken = async (req, res, next) => {
         error: 'Token de acceso requerido',
         code: 'TOKEN_REQUIRED',
         message: 'Debe proporcionar un token de autenticación'
+      });
+    }
+
+    // Verificar si el token está en la blacklist
+    if (isTokenInvalidated(token)) {
+      return res.status(401).json({
+        error: 'Token invalidado',
+        code: 'TOKEN_INVALIDATED',
+        message: 'Su sesión ha sido cerrada. Inicie sesión nuevamente.'
       });
     }
 
@@ -84,12 +111,23 @@ const authenticateToken = async (req, res, next) => {
       // Continuar si hay error en verificación de bloqueo
     }
 
+    // Verificar información del dispositivo si está disponible
+    if (decoded.deviceId) {
+      const currentDeviceId = generateDeviceId(req);
+      if (decoded.deviceId !== currentDeviceId) {
+        console.warn(`⚠️  Cambio de dispositivo detectado para usuario ${user.email}`);
+        // En producción, podrías invalidar el token o requerir re-autenticación
+      }
+    }
+
     // Agregar información adicional del usuario
     req.user = {
       ...user.toJSON(),
       lastActivity: new Date(),
       ip: req.ip || req.connection.remoteAddress,
-      userAgent: req.get('User-Agent')
+      userAgent: req.get('User-Agent'),
+      deviceId: decoded.deviceId,
+      sessionId: decoded.sessionId
     };
 
     // Actualizar último acceso
@@ -326,13 +364,17 @@ const customRateLimit = (maxRequests = 10, windowMs = 60000) => {
   };
 };
 
-// Middleware para logging de actividad
+// Middleware para logging de actividad mejorado
 const activityLogger = (action) => {
   return (req, res, next) => {
     const startTime = Date.now();
+    const requestId = generateRequestId();
+    
+    // Agregar ID de request para trazabilidad
+    req.requestId = requestId;
     
     // Log al inicio de la request
-    console.log(`[${new Date().toISOString()}] ${req.method} ${req.path} - Usuario: ${req.user?.id || 'No autenticado'} - Acción: ${action}`);
+    console.log(`[${requestId}] [${new Date().toISOString()}] ${req.method} ${req.path} - Usuario: ${req.user?.id || 'No autenticado'} - Acción: ${action} - IP: ${req.ip}`);
     
     // Interceptar la respuesta para logging
     const originalSend = res.send;
@@ -340,7 +382,23 @@ const activityLogger = (action) => {
       const duration = Date.now() - startTime;
       const status = res.statusCode;
       
-      console.log(`[${new Date().toISOString()}] ${req.method} ${req.path} - Status: ${status} - Duración: ${duration}ms`);
+      // Log de respuesta con colores según el status
+      const statusColor = status >= 400 ? '🔴' : status >= 300 ? '🟡' : '🟢';
+      console.log(`[${requestId}] ${statusColor} ${req.method} ${req.path} - Status: ${status} - Duración: ${duration}ms - Usuario: ${req.user?.id || 'No autenticado'}`);
+      
+      // Log de errores detallados
+      if (status >= 400) {
+        console.error(`[${requestId}] ❌ Error en ${req.method} ${req.path}:`, {
+          status,
+          duration,
+          user: req.user?.id,
+          ip: req.ip,
+          userAgent: req.get('User-Agent'),
+          body: req.body,
+          params: req.params,
+          query: req.query
+        });
+      }
       
       return originalSend.call(this, data);
     };
@@ -349,6 +407,60 @@ const activityLogger = (action) => {
   };
 };
 
+// Middleware para verificación de seguridad adicional
+const securityCheck = (req, res, next) => {
+  try {
+    // Verificar headers de seguridad
+    const userAgent = req.get('User-Agent');
+    if (!userAgent || userAgent.length < 10) {
+      return res.status(400).json({
+        error: 'User-Agent inválido',
+        code: 'INVALID_USER_AGENT',
+        message: 'User-Agent requerido y válido'
+      });
+    }
+
+    // Verificar IP (opcional, para producción)
+    if (process.env.NODE_ENV === 'production') {
+      const ip = req.ip || req.connection.remoteAddress;
+      if (!ip || ip === 'unknown') {
+        console.warn(`⚠️  IP no válida detectada: ${ip}`);
+      }
+    }
+
+    next();
+  } catch (error) {
+    console.error('Error en verificación de seguridad:', error);
+    next(); // No fallar la request por este error
+  }
+};
+
+// ===== FUNCIONES DE UTILIDAD =====
+
+// Generar ID único de request
+function generateRequestId() {
+  return Math.random().toString(36).substring(2, 15) + 
+         Math.random().toString(36).substring(2, 15);
+}
+
+// Generar ID único del dispositivo
+function generateDeviceId(req) {
+  const userAgent = req.get('User-Agent') || '';
+  const ip = req.ip || req.connection.remoteAddress || '';
+  
+  // Crear hash simple del User-Agent + IP
+  let hash = 0;
+  const str = userAgent + ip;
+  
+  for (let i = 0; i < str.length; i++) {
+    const char = str.charCodeAt(i);
+    hash = ((hash << 5) - hash) + char;
+    hash = hash & hash; // Convertir a entero de 32 bits
+  }
+  
+  return Math.abs(hash).toString(36);
+}
+
 module.exports = {
   authenticateToken,
   requireAdmin,
@@ -356,5 +468,8 @@ module.exports = {
   requireOwnership,
   canRenew,
   customRateLimit,
-  activityLogger
+  activityLogger,
+  securityCheck,
+  invalidateToken,
+  isTokenInvalidated
 };

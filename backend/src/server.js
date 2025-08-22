@@ -15,6 +15,7 @@ const orderRoutes = require('./routes/orders');
 const adminRoutes = require('./routes/admin');
 const whatsappRoutes = require('./routes/whatsapp');
 const { errorHandler, notFoundHandler } = require('./middleware/errorHandler');
+const { auditLogger, autoAudit } = require('./middleware/auditLogger');
 
 // Importar servicios
 const cronService = require('./services/cronService');
@@ -22,8 +23,9 @@ const whatsappService = require('./services/whatsappService');
 
 const app = express();
 const PORT = process.env.PORT || 3001;
+const NODE_ENV = process.env.NODE_ENV || 'development';
 
-// Security middleware
+// ===== CONFIGURACIÓN DE SEGURIDAD =====
 app.use(helmet({
   contentSecurityPolicy: {
     directives: {
@@ -31,100 +33,259 @@ app.use(helmet({
       styleSrc: ["'self'", "'unsafe-inline'"],
       scriptSrc: ["'self'"],
       imgSrc: ["'self'", "data:", "https:"],
+      connectSrc: ["'self'"],
+      fontSrc: ["'self'", "https:"],
+      objectSrc: ["'none'"],
+      mediaSrc: ["'self'"],
+      frameSrc: ["'none'"]
     },
   },
+  hsts: {
+    maxAge: 31536000,
+    includeSubDomains: true,
+    preload: true
+  },
+  noSniff: true,
+  referrerPolicy: { policy: 'strict-origin-when-cross-origin' }
 }));
 
-// Rate limiting
+// ===== RATE LIMITING INTELIGENTE =====
 const limiter = rateLimit({
-  windowMs: parseInt(process.env.RATE_LIMIT_WINDOW_MS) || 15 * 60 * 1000, // 15 minutes
-  max: parseInt(process.env.RATE_LIMIT_MAX_REQUESTS) || 100, // limit each IP to 100 requests per windowMs
+  windowMs: parseInt(process.env.RATE_LIMIT_WINDOW_MS) || 15 * 60 * 1000, // 15 minutos
+  max: parseInt(process.env.RATE_LIMIT_MAX_REQUESTS) || 100, // 100 requests por ventana
   message: {
-    error: 'Demasiadas solicitudes desde esta IP, intenta de nuevo más tarde.'
+    error: 'Demasiadas solicitudes desde esta IP',
+    message: 'Intenta de nuevo más tarde',
+    code: 'RATE_LIMIT_EXCEEDED',
+    retryAfter: Math.ceil(parseInt(process.env.RATE_LIMIT_WINDOW_MS) / 1000 / 60)
   },
   standardHeaders: true,
   legacyHeaders: false,
+  skipSuccessfulRequests: false,
+  skipFailedRequests: false,
+  keyGenerator: (req) => {
+    // Usar IP + User-Agent para mejor identificación
+    return req.ip + ':' + (req.get('User-Agent') || 'unknown');
+  }
 });
 
+// Aplicar rate limiting solo a rutas de API
 app.use('/api/', limiter);
 
-// CORS configuration
-app.use(cors({
-  origin: process.env.CORS_ORIGIN || 'http://localhost:3000',
+// ===== CONFIGURACIÓN CORS OPTIMIZADA =====
+const corsOptions = {
+  origin: function (origin, callback) {
+    const allowedOrigins = [
+      process.env.CORS_ORIGIN || 'http://localhost:3000',
+      'http://localhost:3000',
+      'https://localhost:3000'
+    ];
+    
+    // Permitir requests sin origin (mobile apps, Postman, etc.)
+    if (!origin || allowedOrigins.includes(origin)) {
+      callback(null, true);
+    } else {
+      callback(new Error('Origen no permitido por CORS'));
+    }
+  },
   credentials: true,
-  methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
-  allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With']
+  methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS', 'PATCH'],
+  allowedHeaders: [
+    'Content-Type', 
+    'Authorization', 
+    'X-Requested-With',
+    'X-API-Key',
+    'Accept',
+    'Origin'
+  ],
+  exposedHeaders: ['X-Total-Count', 'X-Page-Count'],
+  maxAge: 86400 // 24 horas
+};
+
+app.use(cors(corsOptions));
+
+// ===== MIDDLEWARE DE PARSING OPTIMIZADO =====
+app.use(express.json({ 
+  limit: '10mb',
+  verify: (req, res, buf) => {
+    try {
+      JSON.parse(buf);
+    } catch (e) {
+      res.status(400).json({
+        error: 'JSON inválido',
+        message: 'El cuerpo de la solicitud no es un JSON válido',
+        code: 'INVALID_JSON'
+      });
+      throw new Error('JSON inválido');
+    }
+  }
+}));
+app.use(express.urlencoded({ 
+  extended: true, 
+  limit: '10mb',
+  parameterLimit: 1000
 }));
 
-// Body parsing middleware
-app.use(express.json({ limit: '10mb' }));
-app.use(express.urlencoded({ extended: true, limit: '10mb' }));
+// ===== COMPRESIÓN INTELIGENTE =====
+app.use(compression({
+  level: 6,
+  threshold: 1024,
+  filter: (req, res) => {
+    if (req.headers['x-no-compression']) {
+      return false;
+    }
+    return compression.filter(req, res);
+  }
+}));
 
-// Compression middleware
-app.use(compression());
-
-// Logging middleware
-if (process.env.NODE_ENV === 'development') {
+// ===== LOGGING ESTRUCTURADO =====
+if (NODE_ENV === 'development') {
   app.use(morgan('dev'));
 } else {
-  app.use(morgan('combined'));
+  // Logging de producción más detallado
+  app.use(morgan('combined', {
+    skip: (req, res) => res.statusCode < 400,
+    stream: {
+      write: (message) => {
+        console.log(message.trim());
+      }
+    }
+  }));
 }
 
-// Health check endpoint
+// ===== SISTEMA DE AUDITORÍA =====
+// Hacer disponible el auditLogger en la app
+app.locals.auditLogger = auditLogger;
+
+// Aplicar auditoría automática a todas las rutas de API
+app.use('/api/', autoAudit);
+
+// ===== MIDDLEWARE DE LOGGING PERSONALIZADO =====
+app.use((req, res, next) => {
+  req.startTime = Date.now();
+  
+  // Log de inicio de request
+  if (NODE_ENV === 'development') {
+    console.log(`📥 ${req.method} ${req.path} - ${new Date().toISOString()}`);
+  }
+  
+  // Log de fin de request
+  res.on('finish', () => {
+    const duration = Date.now() - req.startTime;
+    const status = res.statusCode;
+    const method = req.method;
+    const path = req.path;
+    
+    if (NODE_ENV === 'development') {
+      const statusColor = status >= 400 ? '🔴' : status >= 300 ? '🟡' : '🟢';
+      console.log(`${statusColor} ${method} ${path} - ${status} (${duration}ms)`);
+    }
+    
+    // Log de errores en producción
+    if (NODE_ENV === 'production' && status >= 400) {
+      console.error(`❌ ${method} ${path} - ${status} (${duration}ms) - ${req.ip}`);
+    }
+  });
+  
+  next();
+});
+
+// ===== ENDPOINT DE SALUD MEJORADO =====
 app.get('/health', async (req, res) => {
   try {
+    const startTime = Date.now();
+    
+    // Verificar conexión de base de datos
+    const dbStatus = await sequelize.authenticate()
+      .then(() => 'Connected')
+      .catch(() => 'Disconnected');
+    
+    // Verificar servicios
     const whatsappStatus = whatsappService.isConnected ? 'Connected' : 'Disconnected';
     const cronStatus = 'Active';
+    
+    // Obtener estadísticas de auditoría
+    const auditStats = auditLogger.getAuditStats();
+    
+    const responseTime = Date.now() - startTime;
     
     res.status(200).json({
       status: 'OK',
       timestamp: new Date().toISOString(),
       uptime: process.uptime(),
-      environment: process.env.NODE_ENV,
-      database: 'Connected',
-      whatsapp: whatsappStatus,
-      cron: cronStatus
+      environment: NODE_ENV,
+      version: process.env.npm_package_version || '1.0.0',
+      services: {
+        database: dbStatus,
+        whatsapp: whatsappStatus,
+        cron: cronStatus,
+        audit: 'Active'
+      },
+      performance: {
+        responseTime: `${responseTime}ms`,
+        memoryUsage: process.memoryUsage(),
+        nodeVersion: process.version
+      },
+      audit: {
+        queueSize: auditStats.queueSize,
+        isProcessing: auditStats.isProcessing,
+        batchSize: auditStats.batchSize
+      },
+      endpoints: {
+        auth: '/api/auth',
+        orders: '/api/orders',
+        admin: '/api/admin',
+        whatsapp: '/api/whatsapp'
+      }
     });
   } catch (error) {
     res.status(200).json({
-      status: 'OK',
+      status: 'DEGRADED',
       timestamp: new Date().toISOString(),
       uptime: process.uptime(),
-      environment: process.env.NODE_ENV,
-      database: 'Connected',
-      whatsapp: 'Unknown',
-      cron: 'Unknown'
+      environment: NODE_ENV,
+      error: error.message,
+      services: {
+        database: 'Unknown',
+        whatsapp: 'Unknown',
+        cron: 'Unknown',
+        audit: 'Unknown'
+      }
     });
   }
 });
 
-// API Routes
+// ===== RUTAS DE LA API =====
 app.use('/api/auth', authRoutes);
 app.use('/api/orders', orderRoutes);
 app.use('/api/admin', adminRoutes);
 app.use('/api/whatsapp', whatsappRoutes);
 
-// 404 handler
+// ===== MANEJADOR 404 =====
 app.use('*', notFoundHandler);
 
-// Error handling middleware
+// ===== MANEJADOR DE ERRORES =====
 app.use(errorHandler);
 
-// Database connection and server startup
+// ===== INICIALIZACIÓN DEL SERVIDOR =====
 async function startServer() {
   try {
-    // Test database connection
+    console.log('🚀 Iniciando servidor de Streaming System...');
+    console.log(`🌍 Entorno: ${NODE_ENV}`);
+    console.log(`🔧 Puerto: ${PORT}`);
+    
+    // ===== VERIFICAR CONEXIÓN DE BASE DE DATOS =====
     await sequelize.authenticate();
     console.log('✅ Conexión a la base de datos establecida exitosamente.');
     
-    // Sync database models (in development)
-    if (process.env.NODE_ENV === 'development') {
+    // ===== SINCRONIZAR MODELOS EN DESARROLLO =====
+    if (NODE_ENV === 'development') {
       await sequelize.sync({ alter: true });
       console.log('✅ Modelos de base de datos sincronizados.');
-      console.log('📊 Tablas creadas: users, orders, payments, accounts, profiles');
+      console.log('📊 Tablas disponibles: users, orders, payments, accounts, profiles, services');
     }
     
-    // Initialize WhatsApp service
+    // ===== INICIALIZAR SERVICIO DE WHATSAPP =====
     let whatsappStatus = 'Not Available';
     try {
       await whatsappService.initialize();
@@ -135,7 +296,7 @@ async function startServer() {
       console.log('ℹ️  El servidor continuará sin WhatsApp. Puedes configurarlo más tarde.');
     }
     
-    // Setup cron jobs
+    // ===== CONFIGURAR TAREAS PROGRAMADAS =====
     let cronStatus = 'Not Available';
     try {
       cronService.setupCronJobs();
@@ -146,8 +307,18 @@ async function startServer() {
       console.log('ℹ️  El servidor continuará sin tareas automáticas.');
     }
     
-    // Start server
-    app.listen(PORT, () => {
+    // ===== INICIALIZAR SISTEMA DE AUDITORÍA =====
+    console.log('✅ Sistema de auditoría inicializado.');
+    auditLogger.logSystemAction('STARTUP', {
+      port: PORT,
+      environment: NODE_ENV,
+      timestamp: new Date().toISOString()
+    });
+    
+    // ===== INICIAR SERVIDOR =====
+    const server = app.listen(PORT, () => {
+      console.log('\n🎉 ¡SERVIDOR INICIADO EXITOSAMENTE!');
+      console.log('=' .repeat(50));
       console.log(`🚀 Servidor ejecutándose en puerto ${PORT}`);
       console.log(`📱 Frontend: http://localhost:3000`);
       console.log(`🔧 Backend API: http://localhost:${PORT}/api`);
@@ -155,15 +326,26 @@ async function startServer() {
       console.log(`💾 Base de datos: PostgreSQL conectada`);
       console.log(`🤖 WhatsApp: ${whatsappStatus}`);
       console.log(`⏰ Cron Jobs: ${cronStatus}`);
+      console.log(`📊 Auditoría: Activa`);
+      console.log('=' .repeat(50));
+      console.log(`⏰ Iniciado: ${new Date().toLocaleString()}`);
+      console.log(`🌍 Entorno: ${NODE_ENV}`);
+      console.log(`🔒 Modo: ${NODE_ENV === 'production' ? 'Producción' : 'Desarrollo'}`);
     });
     
+    // ===== CONFIGURAR TIMEOUTS DEL SERVIDOR =====
+    server.timeout = 30000; // 30 segundos
+    server.keepAliveTimeout = 65000; // 65 segundos
+    server.headersTimeout = 66000; // 66 segundos
+    
   } catch (error) {
-    console.error('❌ Error al iniciar el servidor:', error);
+    console.error('❌ Error crítico al iniciar el servidor:', error);
+    console.error('Stack trace:', error.stack);
     process.exit(1);
   }
 }
 
-// Función para verificar conexión de base de datos
+// ===== VERIFICACIÓN PERIÓDICA DE CONEXIÓN =====
 async function checkDatabaseConnection() {
   try {
     await sequelize.authenticate();
@@ -174,7 +356,7 @@ async function checkDatabaseConnection() {
   }
 }
 
-// Verificar conexión de base de datos periódicamente
+// Verificar conexión cada 30 segundos
 setInterval(async () => {
   const isConnected = await checkDatabaseConnection();
   if (!isConnected) {
@@ -186,44 +368,81 @@ setInterval(async () => {
       console.error('❌ No se pudo restaurar la conexión:', error.message);
     }
   }
-}, 30000); // Verificar cada 30 segundos
+}, 30000);
 
-// Graceful shutdown
-process.on('SIGTERM', async () => {
-  console.log('🛑 Recibida señal SIGTERM, cerrando servidor...');
+// ===== MANEJO GRACIOSO DE CIERRE =====
+async function gracefulShutdown(signal) {
+  console.log(`\n🛑 Recibida señal ${signal}, cerrando servidor...`);
+  
   try {
+    // Registrar cierre del sistema
+    auditLogger.logSystemAction('SHUTDOWN', {
+      signal,
+      timestamp: new Date().toISOString()
+    });
+    
+    // Cerrar conexión de base de datos
     await sequelize.close();
     console.log('✅ Conexión a la base de datos cerrada correctamente.');
+    
+    // Cerrar servicios
+    if (whatsappService && typeof whatsappService.close === 'function') {
+      await whatsappService.close();
+      console.log('✅ Servicio de WhatsApp cerrado.');
+    }
+    
+    // Cerrar sistema de auditoría
+    await auditLogger.forceProcess();
+    console.log('✅ Sistema de auditoría cerrado.');
+    
+    console.log('✅ Servidor cerrado correctamente.');
+    process.exit(0);
   } catch (error) {
-    console.error('❌ Error al cerrar conexión de base de datos:', error.message);
+    console.error('❌ Error durante el cierre:', error.message);
+    process.exit(1);
   }
-  process.exit(0);
-});
+}
 
-process.on('SIGINT', async () => {
-  console.log('🛑 Recibida señal SIGINT, cerrando servidor...');
-  try {
-    await sequelize.close();
-    console.log('✅ Conexión a la base de datos cerrada correctamente.');
-  } catch (error) {
-    console.error('❌ Error al cerrar conexión de base de datos:', error.message);
-  }
-  process.exit(0);
-});
+// Capturar señales de cierre
+process.on('SIGTERM', () => gracefulShutdown('SIGTERM'));
+process.on('SIGINT', () => gracefulShutdown('SIGINT'));
 
-// Handle unhandled promise rejections
+// ===== MANEJO DE ERRORES NO CAPTURADOS =====
 process.on('unhandledRejection', (reason, promise) => {
   console.error('❌ Unhandled Rejection at:', promise, 'reason:', reason);
+  
+  // Registrar error en auditoría
+  auditLogger.logSystemAction('ERROR', {
+    type: 'unhandledRejection',
+    reason: reason?.message || reason,
+    timestamp: new Date().toISOString()
+  });
+  
   // No salir del proceso, solo log del error
 });
 
-// Handle uncaught exceptions
 process.on('uncaughtException', (error) => {
   console.error('❌ Uncaught Exception:', error);
-  // Solo salir si es un error crítico de base de datos
-  if (error.message && error.message.includes('database')) {
+  console.error('Stack trace:', error.stack);
+  
+  // Registrar error en auditoría
+  auditLogger.logSystemAction('ERROR', {
+    type: 'uncaughtException',
+    message: error.message,
+    stack: error.stack,
+    timestamp: new Date().toISOString()
+  });
+  
+  // Solo salir si es un error crítico
+  if (error.message && (
+    error.message.includes('database') || 
+    error.message.includes('connection') ||
+    error.message.includes('EADDRINUSE')
+  )) {
+    console.error('❌ Error crítico detectado, cerrando servidor...');
     process.exit(1);
   }
 });
 
+// ===== INICIAR SERVIDOR =====
 startServer();

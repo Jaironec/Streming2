@@ -151,7 +151,65 @@ async function setupDatabase() {
         console.log(`✅ Cuenta ${service.nombre} ${i} creada con ${service.max_perfiles} perfiles`);
       }
     }
-    
+
+    // Crear órdenes de prueba para demostrar el flujo
+    console.log('📋 Creando órdenes de prueba...');
+
+    // Orden 1: Pendiente de pago
+    const order1 = await Order.create({
+      user_id: testUser.id,
+      servicio: 'Netflix',
+      perfiles: 2,
+      meses: 3,
+      monto: 25.99,
+      estado: 'pendiente',
+      fecha_creacion: new Date(),
+      codigo_orden: 'ORD-TEST-001',
+      prioridad: 'normal'
+    });
+
+    // Orden 2: Validando (con comprobante subido)
+    const order2 = await Order.create({
+      user_id: testUser.id,
+      servicio: 'Disney+',
+      perfiles: 1,
+      meses: 6,
+      monto: 62.99,
+      estado: 'validando',
+      fecha_creacion: new Date(Date.now() - 24 * 60 * 60 * 1000), // 1 día atrás
+      codigo_orden: 'ORD-TEST-002',
+      prioridad: 'alta',
+      comentarios_admin: 'Comprobante subido, pendiente de revisión'
+    });
+
+    // Orden 3: Aprobada
+    const order3 = await Order.create({
+      user_id: testUser.id,
+      servicio: 'HBO Max',
+      perfiles: 3,
+      meses: 12,
+      monto: 119.99,
+      estado: 'aprobado',
+      fecha_creacion: new Date(Date.now() - 2 * 24 * 60 * 60 * 1000), // 2 días atrás
+      fecha_aprobacion: new Date(Date.now() - 24 * 60 * 60 * 1000), // 1 día atrás
+      admin_id: adminUser.id,
+      codigo_orden: 'ORD-TEST-003',
+      prioridad: 'normal',
+      comentarios_admin: 'Orden aprobada exitosamente',
+      metodo_pago: 'Transferencia bancaria',
+      referencia_pago: 'TRX-123456'
+    });
+
+    // Calcular fecha de vencimiento para orden aprobada
+    order3.fecha_vencimiento = new Date(order3.fecha_aprobacion);
+    order3.fecha_vencimiento.setMonth(order3.fecha_vencimiento.getMonth() + order3.meses);
+    await order3.save();
+
+    console.log('✅ Órdenes de prueba creadas:');
+    console.log(`   - Orden 1: Netflix 2 perfiles, 3 meses - ${order1.estado}`);
+    console.log(`   - Orden 2: Disney+ 1 perfil, 6 meses - ${order2.estado}`);
+    console.log(`   - Orden 3: HBO Max 3 perfiles, 12 meses - ${order3.estado}`);
+
     console.log('\n🎉 Configuración de base de datos completada exitosamente!');
     console.log('\n📋 Credenciales de acceso:');
     console.log('👨‍💼 Admin: admin@streamingpro.com / admin123');

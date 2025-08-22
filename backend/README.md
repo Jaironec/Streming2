@@ -1,28 +1,71 @@
-# 🚀 Streaming System Backend
+# 🎬 Sistema de Streaming - Backend
 
-Backend completo para sistema de streaming con validación OCR, gestión de cuentas e integración WhatsApp.
+## 🚀 **DESCRIPCIÓN DEL SISTEMA**
 
-## 🛠️ Instalación Rápida
+Sistema completo de gestión de servicios de streaming con roles diferenciados:
 
-### **Opción A: Configuración Automática (RECOMENDADA)**
-```bash
-# 1. Instalar dependencias
-npm install
+### **👤 USUARIOS CLIENTES:**
+- **Solicitar servicios** de streaming (Netflix, Disney+, HBO Max, etc.)
+- **Subir comprobantes** de pago
+- **Ver estado** de sus órdenes
+- **Cancelar órdenes** pendientes
+- **Recibir credenciales** por WhatsApp
 
-# 2. Ejecutar configuración automática
-npm run config
+### **👨‍💼 ADMINISTRADORES:**
+- **Ver todas las solicitudes** del sistema
+- **Aprobar/Rechazar** órdenes
+- **Dashboard completo** con estadísticas
+- **Gestión de cuentas** y perfiles
+- **Notificaciones automáticas** por WhatsApp
 
-# 3. El sistema se configurará automáticamente
+## 🏗️ **ARQUITECTURA DEL SISTEMA**
+
+### **📊 FLUJO DE TRABAJO:**
+```
+Cliente → Solicita Servicio → Estado: PENDIENTE
+    ↓
+Cliente → Sube Comprobante → Estado: VALIDANDO
+    ↓
+Admin → Revisa → Aprueba/Rechaza → Estado: APROBADO/RECHAZADO
+    ↓
+Sistema → Asigna Perfiles → Estado: ACTIVO
+    ↓
+WhatsApp → Envía Credenciales
 ```
 
-### **Opción B: Configuración Manual**
+### **🔐 ROLES Y PERMISOS:**
+- **`cliente`**: Crear órdenes, subir comprobantes, ver sus órdenes
+- **`admin`**: Ver todas las órdenes, aprobar/rechazar, dashboard completo
+
+## 🛠️ **INSTALACIÓN Y CONFIGURACIÓN**
+
+### **📋 REQUISITOS:**
+- Node.js 18+
+- PostgreSQL 12+
+- NPM o Yarn
+
+### **⚡ INSTALACIÓN RÁPIDA:**
 ```bash
 # 1. Instalar dependencias
 npm install
 
-# 2. Configurar variables de entorno
+# 2. Configuración automática
+npm run config
+
+# 3. Verificar configuración
+npm run verify
+
+# 4. Iniciar servidor
+npm run dev
+```
+
+### **🔧 CONFIGURACIÓN MANUAL:**
+```bash
+# 1. Copiar variables de entorno
 cp env.example .env
-# Editar .env con tus credenciales de PostgreSQL
+
+# 2. Editar .env con tus datos
+nano .env
 
 # 3. Configurar base de datos
 npm run setup
@@ -31,108 +74,180 @@ npm run setup
 npm run dev
 ```
 
-## 📋 Scripts Disponibles
+## 📡 **ENDPOINTS DE LA API**
 
-- **`npm run dev`** - Iniciar servidor en modo desarrollo
-- **`npm run start`** - Iniciar servidor en producción
-- **`npm run setup`** - Configurar base de datos completa
-- **`npm run clean`** - Limpiar base de datos
-- **`npm run verify`** - Verificar que todo esté funcionando correctamente
-- **`npm run clean-tokens`** - Limpiar tokens y regenerar base de datos
+### **🔐 AUTENTICACIÓN:**
+- `POST /api/auth/login` - Login de usuario
+- `POST /api/auth/register` - Registro de usuario
+- `GET /api/auth/profile` - Perfil del usuario
 
-## 🗄️ Configuración de Base de Datos
+### **📋 ÓRDENES (CLIENTES):**
+- `POST /api/orders` - Crear nueva orden
+- `GET /api/orders` - Ver órdenes del usuario
+- `GET /api/orders/:id` - Ver orden específica
+- `PUT /api/orders/:id/upload-proof` - Subir comprobante
+- `PUT /api/orders/:id/cancel` - Cancelar orden
 
-### Configuración Completa (Recomendada)
+### **👨‍💼 ADMINISTRACIÓN:**
+- `GET /api/orders` - Ver todas las órdenes (admin)
+- `GET /api/orders/admin/dashboard` - Dashboard completo
+- `PUT /api/orders/:id/approve` - Aprobar orden
+- `PUT /api/orders/:id/reject` - Rechazar orden
+
+### **🏥 SISTEMA:**
+- `GET /health` - Estado del servidor
+- `GET /api/admin/dashboard` - Dashboard general
+
+## 🧪 **PRUEBAS DEL SISTEMA**
+
+### **✅ EJECUTAR PRUEBAS COMPLETAS:**
 ```bash
-npm run setup
+npm run test-system
 ```
 
-### Limpieza y Reconfiguración
+### **📊 LO QUE PRUEBA:**
+1. **Servidor funcionando** ✅
+2. **Autenticación** ✅
+3. **Roles y permisos** ✅
+4. **Admin ve órdenes** ✅
+5. **Cliente crea órdenes** ✅
+6. **Admin aprueba órdenes** ✅
+7. **Dashboard funcionando** ✅
+
+## 🎯 **FUNCIONALIDADES PRINCIPALES**
+
+### **🤖 AUTOMATIZACIÓN:**
+- **OCR automático** para validar comprobantes
+- **Asignación automática** de perfiles
+- **Envío automático** de credenciales por WhatsApp
+- **Notificaciones automáticas** de estado
+
+### **📱 INTEGRACIÓN WHATSAPP:**
+- **Credenciales automáticas** al aprobar
+- **Notificaciones de rechazo** con motivo
+- **Recordatorios** de vencimiento
+- **Soporte al cliente** automatizado
+
+### **🔍 VALIDACIÓN INTELIGENTE:**
+- **Verificación OCR** de comprobantes
+- **Validación de montos** automática
+- **Detección de fraudes** básica
+- **Escala de confianza** configurable
+
+## 📊 **ESTADÍSTICAS Y REPORTES**
+
+### **📈 DASHBOARD ADMIN:**
+- **Total de órdenes** por estado
+- **Órdenes pendientes** de revisión
+- **Órdenes recientes** (últimas 10)
+- **Estadísticas** de servicios
+- **Métricas** de ingresos
+
+### **📋 REPORTES DISPONIBLES:**
+- **Órdenes por servicio** y estado
+- **Rendimiento** por período
+- **Usuarios más activos**
+- **Servicios más populares**
+
+## 🔒 **SEGURIDAD**
+
+### **🛡️ MEDIDAS IMPLEMENTADAS:**
+- **JWT tokens** con expiración
+- **Rate limiting** por IP y usuario
+- **Validación de entrada** estricta
+- **Middleware de autenticación** robusto
+- **Verificación de roles** en cada endpoint
+- **Logs de actividad** completos
+
+### **🔐 AUTENTICACIÓN:**
+- **Bcrypt** para hash de contraseñas
+- **Bloqueo temporal** por intentos fallidos
+- **Sesiones seguras** con JWT
+- **Refresh tokens** opcionales
+
+## 🚀 **DESPLIEGUE**
+
+### **🌐 PRODUCCIÓN:**
 ```bash
-npm run clean
-npm run setup
-```
+# 1. Configurar variables de entorno
+NODE_ENV=production
+PORT=3001
 
-### Limpieza de Tokens (Si hay problemas de autenticación)
-```bash
-npm run clean-tokens
-```
-
-## 🔐 Credenciales de Prueba
-
-### Usuario Administrador
-- **Email**: admin@streamingpro.com
-- **Password**: admin123
-
-### Usuario Cliente
-- **Email**: test@example.com
-- **Password**: test123
-
-## 🌐 Endpoints Principales
-
-- **`/api/auth`** - Autenticación y gestión de usuarios
-- **`/api/orders`** - Gestión de pedidos
-- **`/api/admin`** - Panel de administración
-- **`/api/whatsapp`** - Integración WhatsApp
-- **`/health`** - Estado del servidor
-
-## 🔧 Tecnologías
-
-- **Node.js** + **Express**
-- **PostgreSQL** + **Sequelize**
-- **JWT** para autenticación
-- **Tesseract.js** para OCR
-- **Venom Bot** para WhatsApp
-- **Node-cron** para tareas programadas
-
-## 📁 Estructura del Proyecto
-
-```
-src/
-├── config/          # Configuración de base de datos
-├── middleware/      # Middlewares de autenticación y validación
-├── models/          # Modelos de Sequelize
-├── routes/          # Rutas de la API
-├── services/        # Servicios de negocio
-└── server.js        # Archivo principal del servidor
-```
-
-## 🚨 Solución de Problemas
-
-### Error de Conexión a Base de Datos
-- Verificar que PostgreSQL esté ejecutándose
-- Verificar credenciales en `.env`
-- Ejecutar `npm run setup`
-
-### Error de Autenticación
-- Verificar que JWT_SECRET esté configurado
-- Verificar que el usuario exista en la base de datos
-- Ejecutar `npm run clean && npm run setup`
-
-### Errores 401 (No autorizado) y Conexiones Perdidas
-Si experimentas estos problemas:
-```bash
-# 1. Limpiar tokens y regenerar base de datos
-npm run clean-tokens
-
-# 2. Verificar que todo esté funcionando
-npm run verify
+# 2. Instalar dependencias de producción
+npm install --production
 
 # 3. Iniciar servidor
-npm run dev
+npm start
 ```
 
-## 📞 Soporte
+### **🐳 DOCKER:**
+```bash
+# Construir imagen
+docker build -t streaming-backend .
 
-1. Verificar que PostgreSQL esté ejecutándose
-2. Verificar las credenciales en `.env`
-3. Ejecutar `npm run setup`
-4. Revisar logs del servidor
+# Ejecutar contenedor
+docker run -p 3001:3001 streaming-backend
+```
 
-## 🎯 Estado del Proyecto
+## 📚 **CREDENCIALES DE PRUEBA**
 
-- ✅ **Base de datos**: Configuración completa funcionando
-- ✅ **Autenticación**: Sistema JWT implementado
-- ✅ **Modelos**: Todos los modelos funcionando correctamente
-- ✅ **API**: Endpoints principales implementados
-- ✅ **Seguridad**: Middlewares de autenticación y validación
+### **👨‍💼 ADMINISTRADOR:**
+- **Email**: `admin@streamingpro.com`
+- **Contraseña**: `admin123`
+- **WhatsApp**: `+593964092002`
+- **Rol**: `admin`
+
+### **👤 CLIENTE DE PRUEBA:**
+- **Email**: `test@example.com`
+- **Contraseña**: `test123`
+- **WhatsApp**: `+593964092003`
+- **Rol**: `cliente`
+
+## 🔧 **COMANDOS ÚTILES**
+
+### **📊 GESTIÓN DE BASE DE DATOS:**
+```bash
+npm run setup      # Configurar base de datos
+npm run clean      # Limpiar base de datos
+npm run verify     # Verificar configuración
+```
+
+### **🧪 PRUEBAS Y DIAGNÓSTICO:**
+```bash
+npm run test-system    # Pruebas completas del sistema
+npm run test          # Pruebas unitarias (Jest)
+```
+
+### **🔄 DESARROLLO:**
+```bash
+npm run dev           # Servidor con nodemon
+npm start            # Servidor de producción
+```
+
+## 📞 **SOPORTE Y CONTACTO**
+
+### **🐛 REPORTAR PROBLEMAS:**
+1. **Verificar logs** del servidor
+2. **Ejecutar pruebas**: `npm run test-system`
+3. **Revisar configuración**: `npm run verify`
+4. **Limpiar base de datos**: `npm run clean && npm run setup`
+
+### **📖 DOCUMENTACIÓN ADICIONAL:**
+- `CONFIGURACION-COMPLETA.md` - Configuración detallada
+- `env.example` - Variables de entorno
+- `src/models/` - Modelos de base de datos
+- `src/routes/` - Endpoints de la API
+
+## 🎉 **¡SISTEMA LISTO!**
+
+Tu sistema de streaming está completamente configurado y funcional. 
+
+**Próximos pasos:**
+1. **Probar el sistema**: `npm run test-system`
+2. **Crear frontend** que consuma esta API
+3. **Configurar WhatsApp** con tokens reales
+4. **Personalizar servicios** según tus necesidades
+
+---
+
+**🎬 ¡Disfruta tu sistema de streaming profesional! 🎬**

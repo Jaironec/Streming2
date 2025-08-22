@@ -200,7 +200,7 @@ router.post('/logout', authenticateToken, async (req, res) => {
 // GET /api/auth/profile - Obtener perfil del usuario
 router.get('/profile', authenticateToken, async (req, res) => {
   try {
-    const user = await User.findByPk(req.user.userId, {
+    const user = await User.findByPk(req.user.id, {
       attributes: ['id', 'nombre', 'email', 'whatsapp', 'rol', 'estado', 'ultimo_acceso', 'created_at']
     });
 
@@ -243,7 +243,7 @@ router.put('/profile', [
     }
 
     const { nombre, whatsapp } = req.body;
-    const userId = req.user.userId;
+    const userId = req.user.id;
 
     // Verificar si el WhatsApp ya existe (si se está cambiando)
     if (whatsapp) {
@@ -317,7 +317,7 @@ router.put('/change-password', [
     }
 
     const { currentPassword, newPassword } = req.body;
-    const userId = req.user.userId;
+    const userId = req.user.id;
 
     // Obtener usuario
     const user = await User.findByPk(userId);

@@ -1,9 +1,21 @@
 # 🚀 Streaming System Backend
 
-Backend completo para sistema de streaming con validación OCR, gestión de cuentas y integración WhatsApp.
+Backend completo para sistema de streaming con validación OCR, gestión de cuentas e integración WhatsApp.
 
 ## 🛠️ Instalación Rápida
 
+### **Opción A: Configuración Automática (RECOMENDADA)**
+```bash
+# 1. Instalar dependencias
+npm install
+
+# 2. Ejecutar configuración automática
+npm run config
+
+# 3. El sistema se configurará automáticamente
+```
+
+### **Opción B: Configuración Manual**
 ```bash
 # 1. Instalar dependencias
 npm install
@@ -26,23 +38,22 @@ npm run dev
 - **`npm run setup`** - Configurar base de datos completa
 - **`npm run clean`** - Limpiar base de datos
 - **`npm run verify`** - Verificar que todo esté funcionando correctamente
-- **`npm run verify-token`** - Verificar un token JWT específico
 - **`npm run clean-tokens`** - Limpiar tokens y regenerar base de datos
 
 ## 🗄️ Configuración de Base de Datos
 
-### Opción 1: Configuración Completa (Recomendada)
+### Configuración Completa (Recomendada)
 ```bash
 npm run setup
 ```
 
-### Opción 2: Limpieza y Reconfiguración
+### Limpieza y Reconfiguración
 ```bash
 npm run clean
 npm run setup
 ```
 
-### Opción 3: Limpieza de Tokens (Si hay problemas de autenticación)
+### Limpieza de Tokens (Si hay problemas de autenticación)
 ```bash
 npm run clean-tokens
 ```
@@ -109,12 +120,6 @@ npm run verify
 
 # 3. Iniciar servidor
 npm run dev
-```
-
-### Verificar un Token Específico
-Si tienes un token que no funciona:
-```bash
-npm run verify-token <tu-token-aqui>
 ```
 
 ## 📞 Soporte

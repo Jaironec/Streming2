@@ -10,8 +10,8 @@
     "setup": "node setup-database.js",
     "clean": "node clean-database.js",
     "verify": "node verify-setup.js",
-    "verify-token": "node verify-token.js",
-    "clean-tokens": "node clean-tokens.js"
+    "clean-tokens": "node clean-tokens.js",
+    "config": "node setup-config.js"
   },
   "dependencies": {
     "bcryptjs": "^2.4.3",

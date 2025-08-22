@@ -3,7 +3,6 @@
 echo "🚀 Instalando Sistema de Streaming con OCR y WhatsApp"
 echo "=================================================="
 
-
 # Colores para output
 RED='\033[0;31m'
 GREEN='\033[0;32m'

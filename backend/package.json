@@ -6,7 +6,11 @@
   "scripts": {
     "start": "node src/server.js",
     "dev": "nodemon src/server.js",
-    "test": "jest"
+    "test": "jest",
+    "setup": "node setup-database.js",
+    "clean": "node clean-database.js",
+    "seed-services": "node seed-services.js",
+    "seed-database": "node seed-database.js"
   },
   "dependencies": {
     "bcryptjs": "^2.4.3",

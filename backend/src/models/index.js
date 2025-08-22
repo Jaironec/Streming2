@@ -24,9 +24,9 @@ Profile.belongsTo(User, { foreignKey: 'user_id_asignado', as: 'user' });
 Order.hasMany(Profile, { foreignKey: 'order_id_asignado', as: 'assignedProfiles' });
 Profile.belongsTo(Order, { foreignKey: 'order_id_asignado', as: 'order' });
 
-// Asociaciones para servicios
-Service.hasMany(Order, { foreignKey: 'servicio', sourceKey: 'nombre', as: 'orders' });
-Order.belongsTo(Service, { foreignKey: 'servicio', targetKey: 'nombre', as: 'service' });
+// Asociaciones para servicios - Comentada temporalmente para evitar errores de sincronización
+// Service.hasMany(Order, { foreignKey: 'servicio', sourceKey: 'nombre', as: 'orders' });
+// Order.belongsTo(Service, { foreignKey: 'servicio', targetKey: 'nombre', as: 'service' });
 
 module.exports = {
   User,

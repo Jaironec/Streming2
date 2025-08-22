@@ -5,27 +5,37 @@ async function seedDatabase() {
   try {
     console.log('🌱 Iniciando población de base de datos...');
     
-    // Crear usuario admin
-    const adminUser = await User.create({
-      nombre: 'Administrador',
-      email: 'admin@streamingpro.com',
-      whatsapp: '0964092002',
-      password: 'admin123',
-      rol: 'admin',
-      estado: 'activo'
-    });
-    console.log('✅ Usuario admin creado:', adminUser.email);
+    // Verificar si el usuario admin ya existe
+    let adminUser = await User.findOne({ where: { email: 'admin@streamingpro.com' } });
+    if (!adminUser) {
+      adminUser = await User.create({
+        nombre: 'Administrador',
+        email: 'admin@streamingpro.com',
+        whatsapp: '0964092002',
+        password: 'admin123',
+        rol: 'admin',
+        estado: 'activo'
+      });
+      console.log('✅ Usuario admin creado:', adminUser.email);
+    } else {
+      console.log('ℹ️ Usuario admin ya existe:', adminUser.email);
+    }
 
-    // Crear usuario de prueba
-    const testUser = await User.create({
-      nombre: 'Usuario Test',
-      email: 'test@example.com',
-      whatsapp: '0964092002',
-      password: 'test123',
-      rol: 'cliente',
-      estado: 'activo'
-    });
-    console.log('✅ Usuario de prueba creado:', testUser.email);
+    // Verificar si el usuario de prueba ya existe
+    let testUser = await User.findOne({ where: { email: 'test@example.com' } });
+    if (!testUser) {
+      testUser = await User.create({
+        nombre: 'Usuario Test',
+        email: 'test@example.com',
+        whatsapp: '0964092002',
+        password: 'test123',
+        rol: 'cliente',
+        estado: 'activo'
+      });
+      console.log('✅ Usuario de prueba creado:', testUser.email);
+    } else {
+      console.log('ℹ️ Usuario de prueba ya existe:', testUser.email);
+    }
 
     // Crear cuentas de streaming
     const services = ['Netflix', 'Disney+', 'HBO Max', 'Amazon Prime', 'Paramount+', 'Apple TV+'];
@@ -33,25 +43,33 @@ async function seedDatabase() {
     for (const service of services) {
       // Crear múltiples cuentas por servicio
       for (let i = 1; i <= 3; i++) {
-        const account = await Account.create({
-          servicio: service,
-          email: `${service.toLowerCase().replace(/\s+/g, '')}${i}@streamingpro.com`,
-          password: `password${i}`,
-          estado: 'activo',
-          perfiles_disponibles: 4,
-          notas_admin: `Cuenta ${i} de ${service}`
-        });
-
-        // Crear perfiles para cada cuenta
-        for (let j = 1; j <= 4; j++) {
-          await Profile.create({
-            account_id: account.id,
-            nombre_perfil: `Perfil ${j}`,
-            estado: 'libre'
+        const accountEmail = `${service.toLowerCase().replace(/\s+/g, '')}${i}@streamingpro.com`;
+        
+        // Verificar si la cuenta ya existe
+        let account = await Account.findOne({ where: { email: accountEmail } });
+        if (!account) {
+          account = await Account.create({
+            servicio: service,
+            email: accountEmail,
+            password: `password${i}`,
+            estado: 'activo',
+            perfiles_disponibles: 4,
+            notas_admin: `Cuenta ${i} de ${service}`
           });
-        }
 
-        console.log(`✅ Cuenta ${service} ${i} creada con 4 perfiles`);
+          // Crear perfiles para cada cuenta
+          for (let j = 1; j <= 4; j++) {
+            await Profile.create({
+              account_id: account.id,
+              nombre_perfil: `Perfil ${j}`,
+              estado: 'libre'
+            });
+          }
+
+          console.log(`✅ Cuenta ${service} ${i} creada con 4 perfiles`);
+        } else {
+          console.log(`ℹ️ Cuenta ${service} ${i} ya existe`);
+        }
       }
     }
 

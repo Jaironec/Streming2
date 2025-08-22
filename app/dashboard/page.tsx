@@ -11,7 +11,7 @@ import {
   XCircleIcon,
   EyeIcon,
   PlusIcon,
-  LogoutIcon
+  ArrowRightOnRectangleIcon
 } from '@heroicons/react/24/outline'
 import { apiClient, isAuthenticated, clearSession } from '../lib/api'
 
@@ -165,7 +165,7 @@ export default function DashboardPage() {
                 onClick={handleLogout}
                 className="flex items-center space-x-2 px-3 py-2 text-sm font-medium text-gray-700 hover:text-gray-900"
               >
-                <LogoutIcon className="h-5 w-5" />
+                <ArrowRightOnRectangleIcon className="h-5 w-5" />
                 <span>Cerrar sesión</span>
               </button>
             </div>

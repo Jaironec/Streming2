@@ -85,10 +85,25 @@ router.post('/', requireClient, validateOrder, async (req, res) => {
 });
 
 // GET /api/orders - Listar órdenes del usuario
-router.get('/', requireClient, async (req, res) => {
+router.get('/', async (req, res) => {
   try {
-    const userId = req.user.id;
-    const orders = await Order.findByUser(userId);
+    let orders;
+    
+    // Si es admin, mostrar todas las órdenes
+    if (req.user.rol === 'admin') {
+      orders = await Order.findAll({
+        include: [{
+          model: require('../models').User,
+          as: 'user',
+          attributes: ['id', 'nombre', 'email', 'whatsapp']
+        }],
+        order: [['fecha_creacion', 'DESC']]
+      });
+    } else {
+      // Si es cliente, mostrar solo sus órdenes
+      const userId = req.user.id;
+      orders = await Order.findByUser(userId);
+    }
 
     const ordersWithDetails = await Promise.all(
       orders.map(async (order) => {
@@ -97,7 +112,7 @@ router.get('/', requireClient, async (req, res) => {
           where: { order_id_asignado: order.id }
         });
 
-        return {
+        const orderData = {
           id: order.id,
           servicio: order.servicio,
           perfiles: order.perfiles,
@@ -117,6 +132,18 @@ router.get('/', requireClient, async (req, res) => {
             fecha_expiracion: p.fecha_expiracion
           }))
         };
+
+        // Si es admin, incluir información del usuario
+        if (req.user.rol === 'admin' && order.user) {
+          orderData.user = {
+            id: order.user.id,
+            nombre: order.user.nombre,
+            email: order.user.email,
+            whatsapp: order.user.whatsapp
+          };
+        }
+
+        return orderData;
       })
     );
 

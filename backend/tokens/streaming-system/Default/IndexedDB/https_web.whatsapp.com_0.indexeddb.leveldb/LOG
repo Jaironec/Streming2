@@ -1,27 +1,27 @@
-2025/08/21-21:26:16.064 d674 Reusing MANIFEST C:\Users\Jairon\Downloads\Github\Streming2\backend\tokens\streaming-system\Default\IndexedDB\https_web.whatsapp.com_0.indexeddb.leveldb/MANIFEST-000001
-2025/08/21-21:26:16.065 d674 Recovering log #181
-2025/08/21-21:26:16.115 d674 Reusing old log C:\Users\Jairon\Downloads\Github\Streming2\backend\tokens\streaming-system\Default\IndexedDB\https_web.whatsapp.com_0.indexeddb.leveldb/000181.log 
-2025/08/21-21:26:17.784 f438 Level-0 table #193: started
-2025/08/21-21:26:17.805 f438 Level-0 table #193: 798517 bytes OK
-2025/08/21-21:26:17.806 f438 Delete type=0 #181
-2025/08/21-21:26:17.807 f438 Manual compaction at level-0 from '\x00\x1b\x00\x00\x00' @ 72057594037927935 : 1 .. '\x00\x1c\x00\x00\x00' @ 0 : 0; will stop at (end)
-2025/08/21-21:26:18.983 ef84 Compacting 1@1 + 8@2 files
-2025/08/21-21:26:19.065 ef84 Generated table #194@1: 27498 keys, 2193296 bytes
-2025/08/21-21:26:19.116 ef84 Generated table #195@1: 2878 keys, 2152019 bytes
-2025/08/21-21:26:19.161 ef84 Generated table #196@1: 2483 keys, 2145905 bytes
-2025/08/21-21:26:19.204 ef84 Generated table #197@1: 2816 keys, 2138894 bytes
-2025/08/21-21:26:19.304 ef84 Generated table #198@1: 34715 keys, 2253400 bytes
-2025/08/21-21:26:19.348 ef84 Generated table #199@1: 41355 keys, 2185010 bytes
-2025/08/21-21:26:19.429 ef84 Generated table #200@1: 100860 keys, 2252807 bytes
-2025/08/21-21:26:19.447 ef84 Generated table #201@1: 21454 keys, 474820 bytes
-2025/08/21-21:26:19.448 ef84 Compacted 1@1 + 8@2 files => 15796151 bytes
-2025/08/21-21:26:19.449 ef84 compacted to: files[ 0 0 8 0 0 0 0 ]
-2025/08/21-21:26:19.450 ef84 Delete type=2 #183
-2025/08/21-21:26:19.450 ef84 Delete type=2 #184
-2025/08/21-21:26:19.450 ef84 Delete type=2 #185
-2025/08/21-21:26:19.450 ef84 Delete type=2 #186
-2025/08/21-21:26:19.450 ef84 Delete type=2 #187
-2025/08/21-21:26:19.450 ef84 Delete type=2 #188
-2025/08/21-21:26:19.450 ef84 Delete type=2 #189
-2025/08/21-21:26:19.450 ef84 Delete type=2 #190
-2025/08/21-21:26:19.450 ef84 Delete type=2 #193
+2025/08/21-22:14:07.418 10458 Reusing MANIFEST C:\Users\Jairon\Downloads\Github\Streming2\backend\tokens\streaming-system\Default\IndexedDB\https_web.whatsapp.com_0.indexeddb.leveldb/MANIFEST-000001
+2025/08/21-22:14:07.418 10458 Recovering log #214
+2025/08/21-22:14:07.421 10458 Reusing old log C:\Users\Jairon\Downloads\Github\Streming2\backend\tokens\streaming-system\Default\IndexedDB\https_web.whatsapp.com_0.indexeddb.leveldb/000214.log 
+2025/08/21-22:14:08.992 10458 Level-0 table #226: started
+2025/08/21-22:14:08.998 10458 Level-0 table #226: 49018 bytes OK
+2025/08/21-22:14:09.000 10458 Delete type=0 #214
+2025/08/21-22:14:09.001 10458 Manual compaction at level-0 from '\x00\x1e\x00\x00\x00' @ 72057594037927935 : 1 .. '\x00\x1f\x00\x00\x00' @ 0 : 0; will stop at (end)
+2025/08/21-22:14:10.382 1132c Compacting 1@1 + 8@2 files
+2025/08/21-22:14:10.440 1132c Generated table #227@1: 32823 keys, 2190815 bytes
+2025/08/21-22:14:10.472 1132c Generated table #228@1: 2813 keys, 2151288 bytes
+2025/08/21-22:14:10.503 1132c Generated table #229@1: 2584 keys, 2151856 bytes
+2025/08/21-22:14:10.530 1132c Generated table #230@1: 2187 keys, 2138475 bytes
+2025/08/21-22:14:10.590 1132c Generated table #231@1: 32914 keys, 2245741 bytes
+2025/08/21-22:14:10.633 1132c Generated table #232@1: 34144 keys, 2183932 bytes
+2025/08/21-22:14:10.698 1132c Generated table #233@1: 101607 keys, 2252411 bytes
+2025/08/21-22:14:10.720 1132c Generated table #234@1: 31335 keys, 694434 bytes
+2025/08/21-22:14:10.720 1132c Compacted 1@1 + 8@2 files => 16008952 bytes
+2025/08/21-22:14:10.721 1132c compacted to: files[ 0 0 8 0 0 0 0 ]
+2025/08/21-22:14:10.722 1132c Delete type=2 #216
+2025/08/21-22:14:10.722 1132c Delete type=2 #217
+2025/08/21-22:14:10.722 1132c Delete type=2 #218
+2025/08/21-22:14:10.722 1132c Delete type=2 #219
+2025/08/21-22:14:10.722 1132c Delete type=2 #220
+2025/08/21-22:14:10.722 1132c Delete type=2 #221
+2025/08/21-22:14:10.722 1132c Delete type=2 #222
+2025/08/21-22:14:10.722 1132c Delete type=2 #223
+2025/08/21-22:14:10.722 1132c Delete type=2 #226

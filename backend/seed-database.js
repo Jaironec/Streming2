@@ -9,7 +9,7 @@ async function seedDatabase() {
     const adminUser = await User.create({
       nombre: 'Administrador',
       email: 'admin@streamingpro.com',
-      whatsapp: '1234567890',
+      whatsapp: '0964092002',
       password: 'admin123',
       rol: 'admin',
       estado: 'activo'
@@ -20,7 +20,7 @@ async function seedDatabase() {
     const testUser = await User.create({
       nombre: 'Usuario Test',
       email: 'test@example.com',
-      whatsapp: '0987654321',
+      whatsapp: '0964092002',
       password: 'test123',
       rol: 'cliente',
       estado: 'activo'

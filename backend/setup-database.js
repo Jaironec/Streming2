@@ -107,7 +107,7 @@ async function setupDatabase() {
     const adminUser = await User.create({
       nombre: 'Administrador',
       email: 'admin@streamingpro.com',
-      whatsapp: '0964092002',
+      whatsapp: '+593964092002',
       password: 'admin123',
       rol: 'admin',
       estado: 'activo'
@@ -119,7 +119,7 @@ async function setupDatabase() {
     const testUser = await User.create({
       nombre: 'Usuario Test',
       email: 'test@example.com',
-      whatsapp: '0964092002',
+      whatsapp: '+593964092002',
       password: 'test123',
       rol: 'cliente',
       estado: 'activo'

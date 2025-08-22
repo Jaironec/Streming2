@@ -327,4 +327,7 @@ También puedes consultar directamente en nuestra plataforma web.
 // Singleton instance
 const whatsappService = new WhatsAppService();
 
+// Agregar método initialize al objeto exportado
+whatsappService.initialize = whatsappService.initialize.bind(whatsappService);
+
 module.exports = whatsappService;

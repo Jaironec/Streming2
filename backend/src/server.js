@@ -15,8 +15,6 @@ const orderRoutes = require('./routes/orders');
 const adminRoutes = require('./routes/admin');
 const whatsappRoutes = require('./routes/whatsapp');
 const { errorHandler, notFoundHandler } = require('./middleware/errorHandler');
-const { setupCronJobs } = require('./services/cronService');
-const { initializeWhatsApp } = require('./services/whatsappService');
 
 const app = express();
 const PORT = process.env.PORT || 3001;
@@ -76,8 +74,8 @@ app.get('/health', (req, res) => {
     uptime: process.uptime(),
     environment: process.env.NODE_ENV,
     database: 'Connected',
-    whatsapp: 'Initialized',
-    cron: 'Active'
+    whatsapp: 'Not Available',
+    cron: 'Not Available'
   });
 });
 
@@ -107,14 +105,6 @@ async function startServer() {
       console.log('📊 Tablas creadas: users, orders, payments, accounts, profiles');
     }
     
-    // Initialize WhatsApp service
-    await initializeWhatsApp();
-    console.log('✅ Servicio de WhatsApp inicializado.');
-    
-    // Setup cron jobs
-    setupCronJobs();
-    console.log('✅ Tareas programadas configuradas.');
-    
     // Start server
     app.listen(PORT, () => {
       console.log(`🚀 Servidor ejecutándose en puerto ${PORT}`);
@@ -122,8 +112,8 @@ async function startServer() {
       console.log(`🔧 Backend API: http://localhost:${PORT}/api`);
       console.log(`🏥 Health Check: http://localhost:${PORT}/health`);
       console.log(`💾 Base de datos: PostgreSQL conectada`);
-      console.log(`🤖 WhatsApp: Servicio activo`);
-      console.log(`⏰ Cron Jobs: Programados y activos`);
+      console.log(`🤖 WhatsApp: No disponible por ahora`);
+      console.log(`⏰ Cron Jobs: No disponible por ahora`);
     });
     
   } catch (error) {

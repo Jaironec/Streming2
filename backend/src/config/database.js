@@ -1,6 +1,14 @@
 const { Sequelize } = require('sequelize');
 require('dotenv').config();
 
+// Log de configuración para debugging
+console.log('🔧 Configuración de base de datos:');
+console.log('  Host:', process.env.DB_HOST || 'localhost');
+console.log('  Puerto:', process.env.DB_PORT || 5432);
+console.log('  Base de datos:', process.env.DB_NAME || 'streaming_system');
+console.log('  Usuario:', process.env.DB_USER || 'postgres');
+console.log('  Contraseña:', process.env.DB_PASSWORD ? '***' : 'No configurada');
+
 // Configuración de la base de datos
 const sequelize = new Sequelize(
   process.env.DB_NAME || 'streaming_system',

@@ -4,7 +4,7 @@ import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 import { EyeIcon, EyeSlashIcon } from '@heroicons/react/24/outline'
-import { apiClient } from '@/lib/api'
+import { apiClient } from '../../lib/api'
 
 export default function LoginPage() {
   const [email, setEmail] = useState('')

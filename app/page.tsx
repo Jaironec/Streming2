@@ -15,7 +15,7 @@ import {
 import ServiceCard from '@/components/ServiceCard'
 import CartModal from '@/components/CartModal'
 import { useCartStore } from '@/store/cartStore'
-import { isAuthenticated } from '@/lib/api'
+import { isAuthenticated } from './lib/api'
 import Link from 'next/link'
 
 const services = [

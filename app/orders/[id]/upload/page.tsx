@@ -10,7 +10,7 @@ import {
   CheckCircleIcon,
   XCircleIcon
 } from '@heroicons/react/24/outline'
-import { apiClient, isAuthenticated } from '@/lib/api'
+import { apiClient, isAuthenticated } from '../../../lib/api'
 
 interface Order {
   id: string

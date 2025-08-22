@@ -13,7 +13,7 @@ import {
   PlusIcon,
   LogoutIcon
 } from '@heroicons/react/24/outline'
-import { apiClient, isAuthenticated, clearSession } from '@/lib/api'
+import { apiClient, isAuthenticated, clearSession } from '../lib/api'
 
 interface Order {
   id: string

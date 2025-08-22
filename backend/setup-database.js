@@ -119,7 +119,7 @@ async function setupDatabase() {
     const testUser = await User.create({
       nombre: 'Usuario Test',
       email: 'test@example.com',
-      whatsapp: '+593964092002',
+      whatsapp: '+593964092003',
       password: 'test123',
       rol: 'cliente',
       estado: 'activo'

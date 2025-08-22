@@ -84,7 +84,6 @@ const Order = sequelize.define('Order', {
   codigo_orden: {
     type: DataTypes.STRING(20),
     allowNull: false,
-    unique: true,
     comment: 'Código único de orden para el cliente'
   },
   prioridad: {

@@ -157,10 +157,12 @@ async function setupDatabase() {
     console.log('👨‍💼 Admin: admin@streamingpro.com / admin123');
     console.log('👤 Usuario: test@example.com / test123');
     console.log('\n🔑 Todas las cuentas de streaming tienen contraseña: password1, password2, password3');
+    console.log('\n💡 Ahora puedes ejecutar: npm run dev');
     
   } catch (error) {
     console.error('❌ Error al configurar la base de datos:', error);
     console.error('Detalles del error:', error.message);
+    process.exit(1);
   } finally {
     await sequelize.close();
     console.log('🔌 Conexión a la base de datos cerrada.');

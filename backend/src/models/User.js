@@ -89,6 +89,11 @@ User.prototype.isBlocked = function() {
   return new Date() < this.bloqueado_hasta;
 };
 
+// Método en español para compatibilidad con las rutas
+User.prototype.estaBloqueado = function() {
+  return this.isBlocked();
+};
+
 User.prototype.incrementLoginAttempts = async function() {
   this.intentos_login += 1;
   if (this.intentos_login >= 5) {
@@ -98,10 +103,20 @@ User.prototype.incrementLoginAttempts = async function() {
   await this.save();
 };
 
+// Método en español para compatibilidad con las rutas
+User.prototype.incrementarIntentosLogin = async function() {
+  return await this.incrementLoginAttempts();
+};
+
 User.prototype.resetLoginAttempts = async function() {
   this.intentos_login = 0;
   this.bloqueado_hasta = null;
   await this.save();
+};
+
+// Método en español para compatibilidad con las rutas
+User.prototype.resetearIntentosLogin = async function() {
+  return await this.resetLoginAttempts();
 };
 
 // Class methods

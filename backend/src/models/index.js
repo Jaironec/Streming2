@@ -5,7 +5,7 @@ const Account = require('./Account');
 const Profile = require('./Profile');
 const Service = require('./Service');
 
-// Definir asociaciones
+// Definir asociaciones principales
 User.hasMany(Order, { foreignKey: 'user_id', as: 'orders' });
 Order.belongsTo(User, { foreignKey: 'user_id', as: 'user' });
 
@@ -24,9 +24,21 @@ Profile.belongsTo(User, { foreignKey: 'user_id_asignado', as: 'user' });
 Order.hasMany(Profile, { foreignKey: 'order_id_asignado', as: 'assignedProfiles' });
 Profile.belongsTo(Order, { foreignKey: 'order_id_asignado', as: 'order' });
 
-// Asociaciones para servicios - Comentada temporalmente para evitar errores de sincronización
-// Service.hasMany(Order, { foreignKey: 'servicio', sourceKey: 'nombre', as: 'orders' });
-// Order.belongsTo(Service, { foreignKey: 'servicio', targetKey: 'nombre', as: 'service' });
+// Asociación Service-Order usando el nombre del servicio como referencia
+// Esta asociación es más segura y no causa problemas de sincronización
+Service.hasMany(Order, { 
+  foreignKey: 'servicio', 
+  sourceKey: 'nombre', 
+  as: 'orders',
+  constraints: false // Evita problemas de sincronización
+});
+
+Order.belongsTo(Service, { 
+  foreignKey: 'servicio', 
+  targetKey: 'nombre', 
+  as: 'service',
+  constraints: false // Evita problemas de sincronización
+});
 
 module.exports = {
   User,

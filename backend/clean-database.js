@@ -14,7 +14,7 @@ async function cleanDatabase() {
     // Desactivar verificación de foreign keys temporalmente
     await sequelize.query('SET session_replication_role = replica;');
     
-    // Eliminar tablas en orden
+    // Eliminar tablas en orden correcto
     const tables = [
       'profiles',
       'payments', 
@@ -37,10 +37,11 @@ async function cleanDatabase() {
     await sequelize.query('SET session_replication_role = DEFAULT;');
     
     console.log('\n🎉 Base de datos limpiada exitosamente!');
-    console.log('💡 Ahora puedes ejecutar seed-services.js y seed-database.js en orden');
+    console.log('💡 Ahora puedes ejecutar: npm run setup');
     
   } catch (error) {
     console.error('❌ Error al limpiar la base de datos:', error);
+    process.exit(1);
   } finally {
     await sequelize.close();
     console.log('🔌 Conexión a la base de datos cerrada.');

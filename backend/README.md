@@ -26,6 +26,8 @@ npm run dev
 - **`npm run setup`** - Configurar base de datos completa
 - **`npm run clean`** - Limpiar base de datos
 - **`npm run verify`** - Verificar que todo esté funcionando correctamente
+- **`npm run verify-token`** - Verificar un token JWT específico
+- **`npm run clean-tokens`** - Limpiar tokens y regenerar base de datos
 
 ## 🗄️ Configuración de Base de Datos
 
@@ -38,6 +40,11 @@ npm run setup
 ```bash
 npm run clean
 npm run setup
+```
+
+### Opción 3: Limpieza de Tokens (Si hay problemas de autenticación)
+```bash
+npm run clean-tokens
 ```
 
 ## 🔐 Credenciales de Prueba
@@ -90,6 +97,25 @@ src/
 - Verificar que JWT_SECRET esté configurado
 - Verificar que el usuario exista en la base de datos
 - Ejecutar `npm run clean && npm run setup`
+
+### Errores 401 (No autorizado) y Conexiones Perdidas
+Si experimentas estos problemas:
+```bash
+# 1. Limpiar tokens y regenerar base de datos
+npm run clean-tokens
+
+# 2. Verificar que todo esté funcionando
+npm run verify
+
+# 3. Iniciar servidor
+npm run dev
+```
+
+### Verificar un Token Específico
+Si tienes un token que no funciona:
+```bash
+npm run verify-token <tu-token-aqui>
+```
 
 ## 📞 Soporte
 

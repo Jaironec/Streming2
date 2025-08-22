@@ -163,29 +163,67 @@ async function startServer() {
   }
 }
 
+// Función para verificar conexión de base de datos
+async function checkDatabaseConnection() {
+  try {
+    await sequelize.authenticate();
+    return true;
+  } catch (error) {
+    console.error('❌ Error de conexión a la base de datos:', error.message);
+    return false;
+  }
+}
+
+// Verificar conexión de base de datos periódicamente
+setInterval(async () => {
+  const isConnected = await checkDatabaseConnection();
+  if (!isConnected) {
+    console.log('🔄 Reintentando conexión a la base de datos...');
+    try {
+      await sequelize.authenticate();
+      console.log('✅ Conexión a la base de datos restaurada.');
+    } catch (error) {
+      console.error('❌ No se pudo restaurar la conexión:', error.message);
+    }
+  }
+}, 30000); // Verificar cada 30 segundos
+
 // Graceful shutdown
 process.on('SIGTERM', async () => {
   console.log('🛑 Recibida señal SIGTERM, cerrando servidor...');
-  await sequelize.close();
+  try {
+    await sequelize.close();
+    console.log('✅ Conexión a la base de datos cerrada correctamente.');
+  } catch (error) {
+    console.error('❌ Error al cerrar conexión de base de datos:', error.message);
+  }
   process.exit(0);
 });
 
 process.on('SIGINT', async () => {
   console.log('🛑 Recibida señal SIGINT, cerrando servidor...');
-  await sequelize.close();
+  try {
+    await sequelize.close();
+    console.log('✅ Conexión a la base de datos cerrada correctamente.');
+  } catch (error) {
+    console.error('❌ Error al cerrar conexión de base de datos:', error.message);
+  }
   process.exit(0);
 });
 
 // Handle unhandled promise rejections
 process.on('unhandledRejection', (reason, promise) => {
   console.error('❌ Unhandled Rejection at:', promise, 'reason:', reason);
-  process.exit(1);
+  // No salir del proceso, solo log del error
 });
 
 // Handle uncaught exceptions
 process.on('uncaughtException', (error) => {
   console.error('❌ Uncaught Exception:', error);
-  process.exit(1);
+  // Solo salir si es un error crítico de base de datos
+  if (error.message && error.message.includes('database')) {
+    process.exit(1);
+  }
 });
 
 startServer();

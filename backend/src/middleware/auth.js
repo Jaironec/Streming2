@@ -15,10 +15,39 @@ const authenticateToken = async (req, res, next) => {
     }
 
     // Verificar token
-    const decoded = jwt.verify(token, process.env.JWT_SECRET);
+    let decoded;
+    try {
+      decoded = jwt.verify(token, process.env.JWT_SECRET);
+    } catch (jwtError) {
+      if (jwtError.name === 'JsonWebTokenError') {
+        return res.status(401).json({
+          error: 'Token inválido',
+          code: 'INVALID_TOKEN'
+        });
+      }
+      
+      if (jwtError.name === 'TokenExpiredError') {
+        return res.status(401).json({
+          error: 'Token expirado',
+          code: 'TOKEN_EXPIRED'
+        });
+      }
+      
+      throw jwtError;
+    }
     
     // Buscar usuario en la base de datos
-    const user = await User.findByPk(decoded.userId);
+    let user;
+    try {
+      user = await User.findByPk(decoded.userId);
+    } catch (dbError) {
+      console.error('Error de base de datos al buscar usuario:', dbError);
+      return res.status(500).json({
+        error: 'Error interno del servidor',
+        code: 'DATABASE_ERROR'
+      });
+    }
+    
     if (!user) {
       return res.status(401).json({
         error: 'Usuario no encontrado',
@@ -35,32 +64,23 @@ const authenticateToken = async (req, res, next) => {
     }
 
     // Verificar si el usuario está bloqueado
-    if (user.isBlocked()) {
-      return res.status(401).json({
-        error: 'Usuario bloqueado temporalmente',
-        message: 'Demasiados intentos de login fallidos',
-        code: 'USER_BLOCKED'
-      });
+    try {
+      if (user.isBlocked()) {
+        return res.status(401).json({
+          error: 'Usuario bloqueado temporalmente',
+          message: 'Demasiados intentos de login fallidos',
+          code: 'USER_BLOCKED'
+        });
+      }
+    } catch (blockError) {
+      console.error('Error al verificar bloqueo:', blockError);
+      // Continuar si hay error en verificación de bloqueo
     }
 
     // Agregar usuario a la request
     req.user = user;
     next();
   } catch (error) {
-    if (error.name === 'JsonWebTokenError') {
-      return res.status(401).json({
-        error: 'Token inválido',
-        code: 'INVALID_TOKEN'
-      });
-    }
-    
-    if (error.name === 'TokenExpiredError') {
-      return res.status(401).json({
-        error: 'Token expirado',
-        code: 'TOKEN_EXPIRED'
-      });
-    }
-
     console.error('Error en autenticación:', error);
     return res.status(500).json({
       error: 'Error interno del servidor',

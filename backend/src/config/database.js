@@ -22,12 +22,13 @@ const sequelize = new Sequelize(
     // Configuración de logging
     logging: process.env.NODE_ENV === 'development' ? console.log : false,
     
-    // Configuración de pool de conexiones optimizada
+    // Configuración de pool de conexiones optimizada para estabilidad
     pool: {
-      max: 5,            // Reducido para mejor estabilidad
-      min: 0,            // Mínimo número de conexiones en el pool
-      acquire: 60000,    // Aumentado para evitar timeouts
-      idle: 30000        // Aumentado para mantener conexiones activas
+      max: 10,            // Aumentado para mejor rendimiento
+      min: 2,             // Mínimo de conexiones activas
+      acquire: 30000,     // Tiempo para adquirir conexión
+      idle: 10000,        // Tiempo de inactividad
+      evict: 60000        // Verificar conexiones cada minuto
     },
     
     // Configuración de timezone
@@ -49,7 +50,16 @@ const sequelize = new Sequelize(
         rejectUnauthorized: false
       } : false,
       charset: 'utf8',
-      collate: 'utf8_general_ci'
+      collate: 'utf8_general_ci',
+      // Configuraciones adicionales para estabilidad
+      statement_timeout: 30000,
+      idle_in_transaction_session_timeout: 30000
+    },
+    
+    // Configuraciones adicionales para estabilidad
+    retry: {
+      max: 3,
+      timeout: 5000
     }
   }
 );
@@ -95,19 +105,20 @@ async function closeConnection() {
   }
 }
 
-// Eventos de conexión optimizados
-sequelize.addHook('beforeConnect', async (config) => {
-  console.log('🔌 Intentando conectar a la base de datos...');
-});
+// Eventos de conexión optimizados - Solo log en desarrollo
+if (process.env.NODE_ENV === 'development') {
+  sequelize.addHook('beforeConnect', async (config) => {
+    console.log('🔌 Intentando conectar a la base de datos...');
+  });
 
-sequelize.addHook('afterConnect', async (connection) => {
-  console.log('✅ Conexión establecida con la base de datos.');
-});
+  sequelize.addHook('afterConnect', async (connection) => {
+    console.log('✅ Conexión establecida con la base de datos.');
+  });
 
-// Manejo de errores de conexión mejorado
-sequelize.addHook('afterDisconnect', async (connection) => {
-  console.log('🔌 Conexión a la base de datos perdida.');
-});
+  sequelize.addHook('afterDisconnect', async (connection) => {
+    console.log('🔌 Conexión a la base de datos perdida.');
+  });
+}
 
 // Exportar funciones y instancia
 module.exports = {

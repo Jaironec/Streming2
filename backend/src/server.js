@@ -280,9 +280,21 @@ async function startServer() {
     
     // ===== SINCRONIZAR MODELOS EN DESARROLLO =====
     if (NODE_ENV === 'development') {
-      await sequelize.sync({ alter: true });
-      console.log('✅ Modelos de base de datos sincronizados.');
-      console.log('📊 Tablas disponibles: users, orders, payments, accounts, profiles, services');
+      try {
+        // Usar force: true para recrear las tablas desde cero
+        await sequelize.sync({ force: true });
+        console.log('✅ Modelos de base de datos sincronizados (force: true).');
+        console.log('📊 Tablas disponibles: users, orders, payments, accounts, profiles, services');
+      } catch (syncError) {
+        console.warn('⚠️  Error en sync, intentando con alter: false:', syncError.message);
+        try {
+          await sequelize.sync({ alter: false });
+          console.log('✅ Modelos de base de datos sincronizados (alter: false).');
+        } catch (finalError) {
+          console.error('❌ Error crítico en sincronización:', finalError.message);
+          throw finalError;
+        }
+      }
     }
     
     // ===== INICIALIZAR SERVICIO DE WHATSAPP =====

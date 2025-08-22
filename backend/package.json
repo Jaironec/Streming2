@@ -6,11 +6,8 @@
   "scripts": {
     "start": "node src/server.js",
     "dev": "nodemon src/server.js",
-    "test": "jest",
     "setup": "node setup-database.js",
-    "clean": "node clean-database.js",
-    "verify": "node verify-setup.js",
-    "clean-tokens": "node clean-tokens.js",
+    "clean": "node clean-database-enhanced.js",
     "config": "node setup-config.js"
   },
   "dependencies": {
@@ -32,9 +29,7 @@
     "venom-bot": "^5.0.21"
   },
   "devDependencies": {
-    "jest": "^29.7.0",
-    "nodemon": "^3.1.10",
-    "supertest": "^6.3.3"
+    "nodemon": "^3.1.10"
   },
   "keywords": [
     "streaming",

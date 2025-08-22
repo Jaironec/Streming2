@@ -102,7 +102,9 @@ const sequelize = new Sequelize(
       collate: 'utf8_general_ci',
       // Configuraciones adicionales para estabilidad
       paranoid: false,       // No soft deletes por defecto
-      version: false         // No versionado automático
+      version: false,        // No versionado automático
+      // Evitar problemas con ENUMs en PostgreSQL
+      enum: true
     },
     
     // ===== CONFIGURACIÓN DE DIALECTO POSTGRESQL =====

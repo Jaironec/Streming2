@@ -3,9 +3,9 @@ require('dotenv').config();
 
 // Configuración de la base de datos
 const sequelize = new Sequelize(
-  process.env.DB_NAME || 'streaming_pro',
+  process.env.DB_NAME || 'streaming_system',
   process.env.DB_USER || 'postgres',
-  process.env.DB_PASSWORD || 'password',
+  process.env.DB_PASSWORD || '2514jajaJAJA',
   {
     host: process.env.DB_HOST || 'localhost',
     port: process.env.DB_PORT || 5432,

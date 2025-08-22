@@ -91,6 +91,8 @@ Profile.belongsTo(Order, {
 
 // Asociación Service-Order usando el nombre del servicio como referencia
 // Esta asociación es más segura y no causa problemas de sincronización
+// Comentada temporalmente para evitar errores de sintaxis
+/*
 Service.hasMany(Order, { 
   foreignKey: 'servicio', 
   sourceKey: 'nombre', 
@@ -108,6 +110,7 @@ Order.belongsTo(Service, {
   onDelete: 'RESTRICT',
   onUpdate: 'CASCADE'
 });
+*/
 
 // Función para sincronizar todos los modelos
 async function syncAllModels(force = false) {

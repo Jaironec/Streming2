@@ -42,8 +42,6 @@ export interface Profile {
   order_id_asignado?: string
   fecha_asignacion?: string
   fecha_expiracion?: string
-  ultimo_acceso?: string
-  dispositivo_ultimo_acceso?: string
 }
 
 export interface Account {
@@ -52,29 +50,38 @@ export interface Account {
   email: string
   password: string
   estado: string
-  fecha_creacion: string
-  ultimo_acceso?: string
   perfiles_disponibles: number
   notas_admin?: string
 }
 
-export interface Pricing {
-  basePrice: number
-  monthlyPrice: number
-  totalPrice: number
-  finalPrice: number
-  savings: number
-  savingsPercentage: number
+export interface Service {
+  id: string
+  nombre: string
+  logo: string
+  descripcion?: string
+  precio_base: number
+  max_perfiles: number
+  descuento_3_meses: number
+  descuento_6_meses: number
+  descuento_12_meses: number
+  descuento_perfil_adicional: number
+  estado: string
+  popular: boolean
 }
 
-export interface Service {
-  id: number
-  name: string
-  logo: string
-  description: string
-  price: number
-  features: string[]
-  popular: boolean
+export interface Pricing {
+  basePrice: number
+  finalPrice: number
+  savings: number
+  monthDiscount: number
+  profileDiscount: number
+}
+
+export interface ApiResponse<T> {
+  data?: T
+  message?: string
+  code?: string
+  error?: string
 }
 
 class ApiClient {
@@ -84,6 +91,20 @@ class ApiClient {
   constructor() {
     this.baseUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001/api'
     this.token = typeof window !== 'undefined' ? localStorage.getItem('token') : null
+  }
+
+  private setToken(token: string) {
+    this.token = token
+    if (typeof window !== 'undefined') {
+      localStorage.setItem('token', token)
+    }
+  }
+
+  private clearToken() {
+    this.token = null
+    if (typeof window !== 'undefined') {
+      localStorage.removeItem('token')
+    }
   }
 
   private async request<T>(
@@ -120,50 +141,36 @@ class ApiClient {
     }
   }
 
-  // Authentication
-  async register(data: {
+  // ===== AUTENTICACIÓN =====
+
+  async register(userData: {
     nombre: string
     email: string
     whatsapp: string
     password: string
-  }): Promise<{ token: string; user: User }> {
-    const response = await this.request<{ token: string; user: User }>('/auth/register', {
+  }): Promise<{ user: User; token: string }> {
+    const response = await this.request<{ user: User; token: string }>('/auth/register', {
       method: 'POST',
-      body: JSON.stringify(data),
+      body: JSON.stringify(userData),
     })
-    
-    this.token = response.token
-    if (typeof window !== 'undefined') {
-      localStorage.setItem('token', response.token)
-    }
-    
+    this.setToken(response.token)
     return response
   }
 
-  async login(data: { email: string; password: string }): Promise<{ token: string; user: User }> {
-    const response = await this.request<{ token: string; user: User }>('/auth/login', {
+  async login(credentials: { email: string; password: string }): Promise<{ user: User; token: string }> {
+    const response = await this.request<{ user: User; token: string }>('/auth/login', {
       method: 'POST',
-      body: JSON.stringify(data),
+      body: JSON.stringify(credentials),
     })
-    
-    this.token = response.token
-    if (typeof window !== 'undefined') {
-      localStorage.setItem('token', response.token)
-    }
-    
+    this.setToken(response.token)
     return response
   }
 
   async logout(): Promise<void> {
     try {
       await this.request('/auth/logout', { method: 'POST' })
-    } catch (error) {
-      // Ignore errors on logout
     } finally {
-      this.token = null
-      if (typeof window !== 'undefined') {
-        localStorage.removeItem('token')
-      }
+      this.clearToken()
     }
   }
 
@@ -171,29 +178,34 @@ class ApiClient {
     return this.request<{ user: User }>('/auth/profile')
   }
 
-  async updateProfile(data: Partial<User>): Promise<{ user: User }> {
+  async updateProfile(profileData: { nombre?: string; whatsapp?: string }): Promise<{ user: User }> {
     return this.request<{ user: User }>('/auth/profile', {
       method: 'PUT',
-      body: JSON.stringify(data),
+      body: JSON.stringify(profileData),
     })
   }
 
-  async changePassword(data: { currentPassword: string; newPassword: string }): Promise<{ message: string }> {
+  async changePassword(passwordData: {
+    currentPassword: string
+    newPassword: string
+    confirmPassword: string
+  }): Promise<{ message: string }> {
     return this.request<{ message: string }>('/auth/change-password', {
       method: 'PUT',
-      body: JSON.stringify(data),
+      body: JSON.stringify(passwordData),
     })
   }
 
-  // Orders
-  async createOrder(data: {
+  // ===== ÓRDENES =====
+
+  async createOrder(orderData: {
     servicio: string
     perfiles: number
     meses: number
-  }): Promise<{ order: Order }> {
-    return this.request<{ order: Order }>('/orders', {
+  }): Promise<{ order: Order; pricing: Pricing }> {
+    return this.request<{ order: Order; pricing: Pricing }>('/orders', {
       method: 'POST',
-      body: JSON.stringify(data),
+      body: JSON.stringify(orderData),
     })
   }
 
@@ -205,107 +217,186 @@ class ApiClient {
     return this.request<{ order: Order }>(`/orders/${id}`)
   }
 
-  async uploadProof(orderId: string, file: File): Promise<{ message: string }> {
-    const formData = new FormData()
-    formData.append('archivo_comprobante', file)
+  async uploadProof(orderId: string, proofData: { archivo_comprobante: string }): Promise<{
+    message: string
+    payment: Payment
+    order: Order
+  }> {
+    return this.request<{
+      message: string
+      payment: Payment
+      order: Order
+    }>(`/orders/${orderId}/upload-proof`, {
+      method: 'PUT',
+      body: JSON.stringify(proofData),
+    })
+  }
 
-    const url = `${this.baseUrl}/orders/${orderId}/upload-proof`
-    const headers: HeadersInit = {}
-    
-    if (this.token) {
-      headers.Authorization = `Bearer ${this.token}`
+  // ===== ADMIN =====
+
+  async getDashboard(): Promise<{
+    stats: {
+      totalOrders: number
+      pendingOrders: number
+      approvedOrders: number
+      rejectedOrders: number
+      totalRevenue: number
+      pendingPayments: number
     }
+  }> {
+    return this.request<{
+      stats: {
+        totalOrders: number
+        pendingOrders: number
+        approvedOrders: number
+        rejectedOrders: number
+        totalRevenue: number
+        pendingPayments: number
+      }
+    }>('/admin/dashboard')
+  }
 
-    const response = await fetch(url, {
+  async getAdminOrders(params?: {
+    page?: number
+    limit?: number
+    status?: string
+  }): Promise<{
+    orders: Order[]
+    total: number
+    totalPages: number
+    currentPage: number
+  }> {
+    const queryParams = new URLSearchParams()
+    if (params?.page) queryParams.append('page', params.page.toString())
+    if (params?.limit) queryParams.append('limit', params.limit.toString())
+    if (params?.status) queryParams.append('status', params.status)
+
+    const endpoint = `/admin/orders${queryParams.toString() ? `?${queryParams.toString()}` : ''}`
+    return this.request<{
+      orders: Order[]
+      total: number
+      totalPages: number
+      currentPage: number
+    }>(endpoint)
+  }
+
+  async approveOrder(orderId: string, comentarios?: string): Promise<{ message: string; order: Order }> {
+    return this.request<{ message: string; order: Order }>(`/admin/orders/${orderId}/approve`, {
       method: 'PUT',
-      headers,
-      body: formData,
+      body: JSON.stringify({ comentarios_admin: comentarios }),
     })
-
-    if (!response.ok) {
-      const errorData = await response.json().catch(() => ({}))
-      throw new Error(errorData.message || `HTTP error! status: ${response.status}`)
-    }
-
-    return await response.json()
   }
 
-  // Admin
-  async getDashboard(): Promise<{ stats: any }> {
-    return this.request<{ stats: any }>('/admin/dashboard')
-  }
-
-  async getAdminOrders(): Promise<{ orders: Order[] }> {
-    return this.request<{ orders: Order[] }>('/admin/orders')
-  }
-
-  async approveOrder(orderId: string, comment?: string): Promise<{ message: string }> {
-    return this.request<{ message: string }>(`/admin/orders/${orderId}/approve`, {
+  async rejectOrder(orderId: string, reason: string): Promise<{ message: string; order: Order }> {
+    return this.request<{ message: string; order: Order }>(`/admin/orders/${orderId}/reject`, {
       method: 'PUT',
-      body: JSON.stringify({ comentarios_admin: comment }),
+      body: JSON.stringify({ comentarios_admin: reason }),
     })
   }
 
-  async rejectOrder(orderId: string, comment?: string): Promise<{ message: string }> {
-    return this.request<{ message: string }>(`/admin/orders/${orderId}/reject`, {
-      method: 'PUT',
-      body: JSON.stringify({ comentarios_admin: comment }),
-    })
-  }
-
-  async getPendingPayments(): Promise<{ payments: Payment[] }> {
+  async getPayments(): Promise<{ payments: Payment[] }> {
     return this.request<{ payments: Payment[] }>('/admin/payments')
   }
 
-  // WhatsApp
-  async getWhatsAppStatus(): Promise<{ status: string; connected: boolean }> {
-    return this.request<{ status: string; connected: boolean }>('/whatsapp/status')
+  // ===== SERVICIOS =====
+
+  async getServices(): Promise<{ services: Service[] }> {
+    return this.request<{ services: Service[] }>('/admin/services')
   }
 
-  async sendWhatsAppMessage(data: { to: string; message: string }): Promise<{ message: string }> {
+  async createService(serviceData: {
+    nombre: string
+    logo: string
+    descripcion?: string
+    precio_base: number
+    max_perfiles: number
+    descuento_3_meses: number
+    descuento_6_meses: number
+    descuento_12_meses: number
+    descuento_perfil_adicional: number
+  }): Promise<{ service: Service }> {
+    return this.request<{ service: Service }>('/admin/services', {
+      method: 'POST',
+      body: JSON.stringify(serviceData),
+    })
+  }
+
+  async updateService(serviceId: string, serviceData: Partial<Service>): Promise<{ service: Service }> {
+    return this.request<{ service: Service }>(`/admin/services/${serviceId}`, {
+      method: 'PUT',
+      body: JSON.stringify(serviceData),
+    })
+  }
+
+  // ===== CUENTAS =====
+
+  async getAccounts(): Promise<{ accounts: Account[] }> {
+    return this.request<{ accounts: Account[] }>('/admin/accounts')
+  }
+
+  async createAccount(accountData: {
+    servicio: string
+    email: string
+    password: string
+    perfiles_disponibles: number
+    notas_admin?: string
+  }): Promise<{ account: Account }> {
+    return this.request<{ account: Account }>('/admin/accounts', {
+      method: 'POST',
+      body: JSON.stringify(accountData),
+    })
+  }
+
+  // ===== WHATSAPP =====
+
+  async getWhatsAppStatus(): Promise<{ status: string; isConnected: boolean }> {
+    return this.request<{ status: string; isConnected: boolean }>('/whatsapp/status')
+  }
+
+  async sendMessage(phone: string, message: string): Promise<{ message: string }> {
     return this.request<{ message: string }>('/whatsapp/send-message', {
       method: 'POST',
-      body: JSON.stringify(data),
+      body: JSON.stringify({ phone, message }),
     })
   }
 
-  async sendAccess(data: { orderId: string; message: string }): Promise<{ message: string }> {
+  async sendAccess(phone: string, orderData: Order, credentials: any): Promise<{ message: string }> {
     return this.request<{ message: string }>('/whatsapp/send-access', {
       method: 'POST',
-      body: JSON.stringify(data),
+      body: JSON.stringify({ phone, orderData, credentials }),
     })
   }
 
-  async sendRenewalReminder(data: { orderId: string; message: string }): Promise<{ message: string }> {
+  async sendRenewalReminder(phone: string, orderData: Order): Promise<{ message: string }> {
     return this.request<{ message: string }>('/whatsapp/send-renewal-reminder', {
       method: 'POST',
-      body: JSON.stringify(data),
+      body: JSON.stringify({ phone, orderData }),
     })
   }
 
-  async sendPaymentRejected(data: { orderId: string; message: string }): Promise<{ message: string }> {
+  async sendPaymentRejected(phone: string, orderData: Order, reason: string): Promise<{ message: string }> {
     return this.request<{ message: string }>('/whatsapp/send-payment-rejected', {
       method: 'POST',
-      body: JSON.stringify(data),
+      body: JSON.stringify({ phone, orderData, reason }),
     })
   }
 
-  async getOrderWhatsAppStatus(orderId: string): Promise<{ status: string; lastMessage?: string }> {
-    return this.request<{ status: string; lastMessage?: string }>(`/whatsapp/orders/${orderId}/status`)
+  async getOrderStatus(orderId: string): Promise<{ status: string; details: any }> {
+    return this.request<{ status: string; details: any }>(`/whatsapp/orders/${orderId}/status`)
   }
 
-  async bulkSend(data: { orders: string[]; message: string }): Promise<{ message: string; sent: number; failed: number }> {
-    return this.request<{ message: string; sent: number; failed: number }>('/whatsapp/bulk-send', {
+  async bulkSend(messages: Array<{ phone: string; message: string }>): Promise<{ results: any[] }> {
+    return this.request<{ results: any[] }>('/whatsapp/bulk-send', {
       method: 'POST',
-      body: JSON.stringify(data),
+      body: JSON.stringify({ messages }),
     })
   }
 }
 
-// Singleton instance
+// Instancia singleton del cliente API
 export const apiClient = new ApiClient()
 
-// Utility functions
+// Funciones de utilidad para autenticación
 export const isAuthenticated = (): boolean => {
   if (typeof window === 'undefined') return false
   return !!localStorage.getItem('token')
@@ -321,7 +412,12 @@ export const getToken = (): string | null => {
   return localStorage.getItem('token')
 }
 
-// React hook for API client
+// Hook personalizado para usar la API en componentes React
 export const useApi = () => {
-  return apiClient
+  return {
+    apiClient,
+    isAuthenticated,
+    clearSession,
+    getToken,
+  }
 }

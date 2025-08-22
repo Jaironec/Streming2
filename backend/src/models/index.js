@@ -3,6 +3,7 @@ const Order = require('./Order');
 const Payment = require('./Payment');
 const Account = require('./Account');
 const Profile = require('./Profile');
+const Service = require('./Service');
 
 // Definir asociaciones
 User.hasMany(Order, { foreignKey: 'user_id', as: 'orders' });
@@ -23,10 +24,15 @@ Profile.belongsTo(User, { foreignKey: 'user_id_asignado', as: 'user' });
 Order.hasMany(Profile, { foreignKey: 'order_id_asignado', as: 'assignedProfiles' });
 Profile.belongsTo(Order, { foreignKey: 'order_id_asignado', as: 'order' });
 
+// Asociaciones para servicios
+Service.hasMany(Order, { foreignKey: 'servicio', sourceKey: 'nombre', as: 'orders' });
+Order.belongsTo(Service, { foreignKey: 'servicio', targetKey: 'nombre', as: 'service' });
+
 module.exports = {
   User,
   Order,
   Payment,
   Account,
-  Profile
+  Profile,
+  Service
 };

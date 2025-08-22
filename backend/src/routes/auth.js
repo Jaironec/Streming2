@@ -7,40 +7,14 @@ const { authenticateToken } = require('../middleware/auth');
 
 const router = express.Router();
 
-// Validación para registro
-const validateRegistration = [
-  body('nombre')
-    .trim()
-    .isLength({ min: 2, max: 100 })
-    .withMessage('El nombre debe tener entre 2 y 100 caracteres'),
-  body('email')
-    .isEmail()
-    .normalizeEmail()
-    .withMessage('Email inválido'),
-  body('whatsapp')
-    .trim()
-    .isLength({ min: 10, max: 20 })
-    .withMessage('WhatsApp debe tener entre 10 y 20 caracteres'),
-  body('password')
-    .isLength({ min: 6, max: 255 })
-    .withMessage('La contraseña debe tener entre 6 y 255 caracteres')
-];
-
-// Validación para login
-const validateLogin = [
-  body('email')
-    .isEmail()
-    .normalizeEmail()
-    .withMessage('Email inválido'),
-  body('password')
-    .notEmpty()
-    .withMessage('Contraseña requerida')
-];
-
 // POST /api/auth/register - Registro de usuario
-router.post('/register', validateRegistration, async (req, res) => {
+router.post('/register', [
+  body('nombre').isString().trim().isLength({ min: 2, max: 100 }).withMessage('Nombre debe tener entre 2 y 100 caracteres'),
+  body('email').isEmail().normalizeEmail().withMessage('Email válido requerido'),
+  body('whatsapp').isString().trim().isLength({ min: 10, max: 15 }).withMessage('WhatsApp debe tener entre 10 y 15 dígitos'),
+  body('password').isLength({ min: 6 }).withMessage('Contraseña debe tener al menos 6 caracteres')
+], async (req, res) => {
   try {
-    // Verificar errores de validación
     const errors = validationResult(req);
     if (!errors.isEmpty()) {
       return res.status(400).json({
@@ -53,21 +27,21 @@ router.post('/register', validateRegistration, async (req, res) => {
     const { nombre, email, whatsapp, password } = req.body;
 
     // Verificar si el email ya existe
-    const existingUser = await User.findByEmail(email);
-    if (existingUser) {
-      return res.status(409).json({
+    const existingUserByEmail = await User.findByEmail(email);
+    if (existingUserByEmail) {
+      return res.status(400).json({
         error: 'Email ya registrado',
-        message: 'Este email ya está siendo utilizado por otro usuario',
+        message: 'Ya existe una cuenta con este email',
         code: 'EMAIL_ALREADY_EXISTS'
       });
     }
 
     // Verificar si el WhatsApp ya existe
-    const existingWhatsApp = await User.findByWhatsApp(whatsapp);
-    if (existingWhatsApp) {
-      return res.status(409).json({
+    const existingUserByWhatsApp = await User.findByWhatsApp(whatsapp);
+    if (existingUserByWhatsApp) {
+      return res.status(400).json({
         error: 'WhatsApp ya registrado',
-        message: 'Este número de WhatsApp ya está siendo utilizado',
+        message: 'Ya existe una cuenta con este número de WhatsApp',
         code: 'WHATSAPP_ALREADY_EXISTS'
       });
     }
@@ -96,8 +70,7 @@ router.post('/register', validateRegistration, async (req, res) => {
         nombre: user.nombre,
         email: user.email,
         whatsapp: user.whatsapp,
-        rol: user.rol,
-        estado: user.estado
+        rol: user.rol
       },
       token,
       code: 'USER_REGISTERED'
@@ -114,9 +87,11 @@ router.post('/register', validateRegistration, async (req, res) => {
 });
 
 // POST /api/auth/login - Login de usuario
-router.post('/login', validateLogin, async (req, res) => {
+router.post('/login', [
+  body('email').isEmail().normalizeEmail().withMessage('Email válido requerido'),
+  body('password').notEmpty().withMessage('Contraseña requerida')
+], async (req, res) => {
   try {
-    // Verificar errores de validación
     const errors = validationResult(req);
     if (!errors.isEmpty()) {
       return res.status(400).json({
@@ -138,20 +113,20 @@ router.post('/login', validateLogin, async (req, res) => {
       });
     }
 
-    // Verificar si el usuario está activo
-    if (user.estado !== 'activo') {
-      return res.status(401).json({
+    // Verificar estado de la cuenta
+    if (user.estado === 'suspendido') {
+      return res.status(403).json({
         error: 'Cuenta suspendida',
-        message: 'Tu cuenta ha sido suspendida. Contacta soporte.',
+        message: 'Tu cuenta ha sido suspendida. Contacta al administrador.',
         code: 'ACCOUNT_SUSPENDED'
       });
     }
 
-    // Verificar si el usuario está bloqueado
-    if (user.isBlocked()) {
-      return res.status(423).json({
-        error: 'Cuenta bloqueada temporalmente',
-        message: 'Demasiados intentos de login fallidos. Intenta de nuevo más tarde.',
+    // Verificar si está bloqueado
+    if (user.estaBloqueado()) {
+      return res.status(403).json({
+        error: 'Cuenta bloqueada',
+        message: `Tu cuenta está bloqueada hasta ${user.bloqueado_hasta}. Intenta más tarde.`,
         code: 'ACCOUNT_LOCKED'
       });
     }
@@ -159,8 +134,8 @@ router.post('/login', validateLogin, async (req, res) => {
     // Verificar contraseña
     const isValidPassword = await user.validatePassword(password);
     if (!isValidPassword) {
-      // Incrementar intentos fallidos
-      await user.incrementLoginAttempts();
+      // Incrementar intentos de login
+      await user.incrementarIntentosLogin();
       
       return res.status(401).json({
         error: 'Credenciales inválidas',
@@ -169,12 +144,9 @@ router.post('/login', validateLogin, async (req, res) => {
       });
     }
 
-    // Resetear intentos de login
-    await user.resetLoginAttempts();
-
-    // Actualizar último acceso
-    user.ultimo_acceso = new Date();
-    await user.save();
+    // Resetear intentos de login y actualizar último acceso
+    await user.resetearIntentosLogin();
+    await user.update({ ultimo_acceso: new Date() });
 
     // Generar token JWT
     const token = jwt.sign(
@@ -190,9 +162,7 @@ router.post('/login', validateLogin, async (req, res) => {
         nombre: user.nombre,
         email: user.email,
         whatsapp: user.whatsapp,
-        rol: user.rol,
-        estado: user.estado,
-        ultimo_acceso: user.ultimo_acceso
+        rol: user.rol
       },
       token,
       code: 'LOGIN_SUCCESS'
@@ -211,8 +181,8 @@ router.post('/login', validateLogin, async (req, res) => {
 // POST /api/auth/logout - Logout de usuario
 router.post('/logout', authenticateToken, async (req, res) => {
   try {
-    // En una implementación real, aquí podrías invalidar el token
-    // Por ahora solo respondemos con éxito
+    // En una implementación real, podrías invalidar el token
+    // Por ahora solo devolvemos éxito
     res.json({
       message: 'Logout exitoso',
       code: 'LOGOUT_SUCCESS'
@@ -230,21 +200,22 @@ router.post('/logout', authenticateToken, async (req, res) => {
 // GET /api/auth/profile - Obtener perfil del usuario
 router.get('/profile', authenticateToken, async (req, res) => {
   try {
-    const user = req.user;
-    
+    const user = await User.findByPk(req.user.userId, {
+      attributes: ['id', 'nombre', 'email', 'whatsapp', 'rol', 'estado', 'ultimo_acceso', 'created_at']
+    });
+
+    if (!user) {
+      return res.status(404).json({
+        error: 'Usuario no encontrado',
+        code: 'USER_NOT_FOUND'
+      });
+    }
+
     res.json({
-      user: {
-        id: user.id,
-        nombre: user.nombre,
-        email: user.email,
-        whatsapp: user.whatsapp,
-        rol: user.rol,
-        estado: user.estado,
-        ultimo_acceso: user.ultimo_acceso,
-        fecha_creacion: user.createdAt
-      },
+      user,
       code: 'PROFILE_RETRIEVED'
     });
+
   } catch (error) {
     console.error('Error al obtener perfil:', error);
     res.status(500).json({
@@ -256,20 +227,12 @@ router.get('/profile', authenticateToken, async (req, res) => {
 });
 
 // PUT /api/auth/profile - Actualizar perfil del usuario
-router.put('/profile', authenticateToken, [
-  body('nombre')
-    .optional()
-    .trim()
-    .isLength({ min: 2, max: 100 })
-    .withMessage('El nombre debe tener entre 2 y 100 caracteres'),
-  body('whatsapp')
-    .optional()
-    .trim()
-    .isLength({ min: 10, max: 20 })
-    .withMessage('WhatsApp debe tener entre 10 y 20 caracteres')
+router.put('/profile', [
+  authenticateToken,
+  body('nombre').optional().isString().trim().isLength({ min: 2, max: 100 }).withMessage('Nombre debe tener entre 2 y 100 caracteres'),
+  body('whatsapp').optional().isString().trim().isLength({ min: 10, max: 15 }).withMessage('WhatsApp debe tener entre 10 y 15 dígitos')
 ], async (req, res) => {
   try {
-    // Verificar errores de validación
     const errors = validationResult(req);
     if (!errors.isEmpty()) {
       return res.status(400).json({
@@ -280,25 +243,34 @@ router.put('/profile', authenticateToken, [
     }
 
     const { nombre, whatsapp } = req.body;
-    const user = req.user;
+    const userId = req.user.userId;
 
     // Verificar si el WhatsApp ya existe (si se está cambiando)
-    if (whatsapp && whatsapp !== user.whatsapp) {
-      const existingWhatsApp = await User.findByWhatsApp(whatsapp);
-      if (existingWhatsApp && existingWhatsApp.id !== user.id) {
-        return res.status(409).json({
+    if (whatsapp) {
+      const existingUser = await User.findByWhatsApp(whatsapp);
+      if (existingUser && existingUser.id !== userId) {
+        return res.status(400).json({
           error: 'WhatsApp ya registrado',
-          message: 'Este número de WhatsApp ya está siendo utilizado',
+          message: 'Ya existe una cuenta con este número de WhatsApp',
           code: 'WHATSAPP_ALREADY_EXISTS'
         });
       }
     }
 
-    // Actualizar campos
-    if (nombre) user.nombre = nombre;
-    if (whatsapp) user.whatsapp = whatsapp;
+    // Actualizar usuario
+    const user = await User.findByPk(userId);
+    if (!user) {
+      return res.status(404).json({
+        error: 'Usuario no encontrado',
+        code: 'USER_NOT_FOUND'
+      });
+    }
 
-    await user.save();
+    const updateData = {};
+    if (nombre) updateData.nombre = nombre;
+    if (whatsapp) updateData.whatsapp = whatsapp;
+
+    await user.update(updateData);
 
     res.json({
       message: 'Perfil actualizado exitosamente',
@@ -307,9 +279,7 @@ router.put('/profile', authenticateToken, [
         nombre: user.nombre,
         email: user.email,
         whatsapp: user.whatsapp,
-        rol: user.rol,
-        estado: user.estado,
-        ultimo_acceso: user.ultimo_acceso
+        rol: user.rol
       },
       code: 'PROFILE_UPDATED'
     });
@@ -325,16 +295,18 @@ router.put('/profile', authenticateToken, [
 });
 
 // PUT /api/auth/change-password - Cambiar contraseña
-router.put('/change-password', authenticateToken, [
-  body('currentPassword')
-    .notEmpty()
-    .withMessage('Contraseña actual requerida'),
-  body('newPassword')
-    .isLength({ min: 6, max: 255 })
-    .withMessage('La nueva contraseña debe tener entre 6 y 255 caracteres')
+router.put('/change-password', [
+  authenticateToken,
+  body('currentPassword').notEmpty().withMessage('Contraseña actual requerida'),
+  body('newPassword').isLength({ min: 6 }).withMessage('Nueva contraseña debe tener al menos 6 caracteres'),
+  body('confirmPassword').custom((value, { req }) => {
+    if (value !== req.body.newPassword) {
+      throw new Error('Las contraseñas no coinciden');
+    }
+    return true;
+  }).withMessage('Las contraseñas no coinciden')
 ], async (req, res) => {
   try {
-    // Verificar errores de validación
     const errors = validationResult(req);
     if (!errors.isEmpty()) {
       return res.status(400).json({
@@ -345,19 +317,28 @@ router.put('/change-password', authenticateToken, [
     }
 
     const { currentPassword, newPassword } = req.body;
-    const user = req.user;
+    const userId = req.user.userId;
+
+    // Obtener usuario
+    const user = await User.findByPk(userId);
+    if (!user) {
+      return res.status(404).json({
+        error: 'Usuario no encontrado',
+        code: 'USER_NOT_FOUND'
+      });
+    }
 
     // Verificar contraseña actual
     const isValidPassword = await user.validatePassword(currentPassword);
     if (!isValidPassword) {
-      return res.status(401).json({
+      return res.status(400).json({
         error: 'Contraseña actual incorrecta',
-        message: 'La contraseña actual no coincide',
+        message: 'La contraseña actual no es correcta',
         code: 'INVALID_CURRENT_PASSWORD'
       });
     }
 
-    // Cambiar contraseña
+    // Actualizar contraseña
     user.password = newPassword;
     await user.save();
 
@@ -371,33 +352,6 @@ router.put('/change-password', authenticateToken, [
     res.status(500).json({
       error: 'Error interno del servidor',
       message: 'No se pudo cambiar la contraseña',
-      code: 'INTERNAL_ERROR'
-    });
-  }
-});
-
-// POST /api/auth/refresh - Renovar token
-router.post('/refresh', authenticateToken, async (req, res) => {
-  try {
-    const user = req.user;
-    
-    // Generar nuevo token
-    const newToken = jwt.sign(
-      { userId: user.id, email: user.email, rol: user.rol },
-      process.env.JWT_SECRET,
-      { expiresIn: process.env.JWT_EXPIRES_IN || '7d' }
-    );
-
-    res.json({
-      message: 'Token renovado exitosamente',
-      token: newToken,
-      code: 'TOKEN_REFRESHED'
-    });
-  } catch (error) {
-    console.error('Error al renovar token:', error);
-    res.status(500).json({
-      error: 'Error interno del servidor',
-      message: 'No se pudo renovar el token',
       code: 'INTERNAL_ERROR'
     });
   }

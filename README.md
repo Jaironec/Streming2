@@ -1,302 +1,351 @@
-# 🎬 Sistema de Streaming - StreamingPro
+# 🎬 StreamingPro - Sistema de Gestión de Streaming
 
-Un sistema completo y moderno para la gestión de cuentas de streaming con validación automática OCR, envío de accesos por WhatsApp y panel de administración.
+Sistema completo para la gestión de servicios de streaming con validación OCR, WhatsApp automático y panel de administración.
 
-## ✨ Características Principales
+## 🚀 Características Principales
 
-### 🎯 Frontend (Next.js + TailwindCSS)
-- **Catálogo de servicios** con filtros por servicio, perfiles y meses
-- **Carrito de compras** intuitivo y responsive
-- **Formulario de checkout** con validación en tiempo real
-- **Subida de comprobantes** de pago
-- **Panel de usuario** con historial de compras
-- **Diseño moderno** y completamente responsive
+### ✅ **Frontend (Next.js + TailwindCSS)**
+- **Catálogo de servicios** con filtros de perfiles y meses
+- **Carrito de compras** con cálculo automático de descuentos
+- **Sistema de autenticación** completo (registro, login, logout)
+- **Dashboard de usuario** con historial de órdenes
+- **Formulario de subida** de comprobantes de pago
+- **Panel de administración** para gestión de órdenes
 
-### 🔧 Backend (Node.js + Express)
-- **API RESTful** con validación de datos
-- **Autenticación JWT** con roles de usuario y admin
-- **Validación OCR automática** de comprobantes de pago
-- **Gestión de cuentas** y perfiles de streaming
-- **Envío automático** de accesos por WhatsApp
-- **Sistema de notificaciones** y recordatorios
+### ✅ **Backend (Node.js + Express)**
+- **API REST completa** con autenticación JWT
+- **Validación automática OCR** con Tesseract.js
+- **Integración WhatsApp** con Venom Bot
+- **Tareas programadas** con node-cron
+- **Base de datos PostgreSQL** con Sequelize ORM
+- **Middleware de seguridad** completo
 
-### 🗄️ Base de Datos (PostgreSQL)
-- **Modelos optimizados** para streaming
-- **Relaciones eficientes** entre usuarios, órdenes y perfiles
-- **Manejo de estados** de órdenes y pagos
-- **Auditoría completa** de transacciones
+### ✅ **Funcionalidades del Sistema**
+- **Generación automática** de órdenes con ID único
+- **Validación OCR** de comprobantes de pago
+- **Asignación automática** de perfiles de streaming
+- **Notificaciones WhatsApp** automáticas
+- **Recordatorios de renovación** programados
+- **Backups automáticos** de base de datos
 
-### 🤖 Automatización
-- **OCR con Tesseract.js** para validación de comprobantes
-- **WhatsApp Bot** con Venom para envío automático
-- **Tareas programadas** para renovaciones y limpieza
-- **Notificaciones automáticas** de vencimiento
+## 🛠️ Tecnologías Utilizadas
 
-## 🚀 Instalación y Configuración
+| Componente | Tecnología |
+|------------|------------|
+| **Frontend** | Next.js 14, React 18, TailwindCSS |
+| **Backend** | Node.js, Express.js, Sequelize |
+| **Base de Datos** | PostgreSQL |
+| **OCR** | Tesseract.js |
+| **WhatsApp** | Venom Bot |
+| **Autenticación** | JWT, bcrypt |
+| **Tareas Programadas** | node-cron |
+| **Validación** | express-validator |
 
-### Prerrequisitos
-- Node.js 18+ 
-- PostgreSQL 13+
-- npm o yarn
+## 📋 Requisitos del Sistema
 
-### 1. Clonar el repositorio
+### **Software Requerido**
+- **Node.js** 18+ y npm
+- **PostgreSQL** 12+
+- **Tesseract OCR** (para procesamiento de imágenes)
+- **Chrome/Chromium** (para WhatsApp Bot)
+
+### **Sistema Operativo**
+- ✅ Windows 10/11
+- ✅ macOS 10.15+
+- ✅ Ubuntu 20.04+ / CentOS 8+
+
+## 🚀 Instalación Rápida
+
+### **1. Clonar el Repositorio**
 ```bash
-git clone https://github.com/tu-usuario/streaming-system.git
-cd streaming-system
+git clone <repository-url>
+cd Streming2
 ```
 
-### 2. Instalar dependencias del frontend
-```bash
-npm install
-```
-
-### 3. Instalar dependencias del backend
+### **2. Configurar Backend**
 ```bash
 cd backend
+
+# Instalar dependencias
 npm install
+
+# Crear archivo .env (se crea automáticamente)
+# Verificar configuración en .env
+
+# Poblar base de datos con datos de prueba
+node seed-database.js
+
+# Iniciar servidor
+npm run dev
 ```
 
-### 4. Configurar variables de entorno
+### **3. Configurar Frontend**
 ```bash
-# En el directorio backend
-cp env.example .env
+# En otra terminal, desde la raíz del proyecto
+npm install
+
+# Iniciar frontend
+npm run dev
 ```
 
-Editar `.env` con tus configuraciones:
-```env
-# Base de datos
+### **4. Acceder al Sistema**
+- **Frontend:** http://localhost:3000
+- **Backend API:** http://localhost:3001/api
+- **Health Check:** http://localhost:3001/health
+
+## 🔧 Configuración Detallada
+
+### **Variables de Entorno (.env)**
+```bash
+# Server Configuration
+PORT=3001
+NODE_ENV=development
+
+# Database Configuration
 DB_HOST=localhost
 DB_PORT=5432
 DB_NAME=streaming_system
 DB_USER=postgres
 DB_PASSWORD=tu_password
 
-# JWT
-JWT_SECRET=tu_super_secret_key
+# JWT Configuration
+JWT_SECRET=tu_jwt_secret
+JWT_EXPIRES_IN=7d
 
-# WhatsApp
+# File Upload Configuration
+UPLOAD_PATH=./uploads
+MAX_FILE_SIZE=10485760
+
+# WhatsApp Configuration
 WHATSAPP_SESSION_PATH=./whatsapp-sessions
 
-# OCR
+# OCR Configuration
 TESSERACT_LANG=spa+eng
+
+# Security
+BCRYPT_ROUNDS=12
+CORS_ORIGIN=http://localhost:3000
 ```
 
-### 5. Configurar base de datos
+### **Base de Datos PostgreSQL**
 ```sql
 -- Crear base de datos
 CREATE DATABASE streaming_system;
 
--- El sistema creará las tablas automáticamente
+-- El sistema creará automáticamente todas las tablas
+-- Ejecutar seed-database.js para datos de prueba
 ```
 
-### 6. Ejecutar el sistema
+## 👥 Usuarios de Prueba
 
-#### Frontend (puerto 3000)
+### **Administrador**
+- **Email:** admin@streamingpro.com
+- **Password:** admin123
+- **Rol:** Administrador completo
+
+### **Usuario Cliente**
+- **Email:** test@example.com
+- **Password:** test123
+- **Rol:** Cliente estándar
+
+## 📱 Flujo de Uso del Sistema
+
+### **1. Registro e Inicio de Sesión**
+```
+Usuario → Registro → Login → Dashboard
+```
+
+### **2. Creación de Orden**
+```
+Dashboard → Seleccionar Servicio → Configurar Perfiles/Meses → Crear Orden
+```
+
+### **3. Subida de Comprobante**
+```
+Orden Creada → Subir Comprobante → Validación OCR → Estado Actualizado
+```
+
+### **4. Proceso de Aprobación**
+```
+Admin → Revisar Comprobante + OCR → Aprobar/Rechazar → Asignar Perfil
+```
+
+### **5. Entrega de Accesos**
+```
+Orden Aprobada → Asignación Automática de Perfil → WhatsApp Automático → Cliente Recibe Credenciales
+```
+
+## 🔍 Estructura de la Base de Datos
+
+### **Tablas Principales**
+- **`users`** - Usuarios del sistema (cliente/admin)
+- **`orders`** - Órdenes de servicios
+- **`payments`** - Comprobantes de pago y resultados OCR
+- **`accounts`** - Cuentas de streaming disponibles
+- **`profiles`** - Perfiles individuales por cuenta
+
+### **Relaciones**
+```
+User (1) → (N) Orders
+Order (1) → (1) Payment
+Account (1) → (N) Profiles
+Profile (N) → (1) User (cuando está asignado)
+```
+
+## 🚨 Solución de Problemas
+
+### **Error: "initializeWhatsApp is not a function"**
 ```bash
-npm run dev
+# Verificar que el servicio esté correctamente exportado
+# El sistema continuará funcionando sin WhatsApp
 ```
 
-#### Backend (puerto 3001)
+### **Error de Conexión a PostgreSQL**
 ```bash
-cd backend
-npm run dev
+# Verificar que PostgreSQL esté ejecutándose
+# Verificar credenciales en .env
+# Verificar que la base de datos exista
 ```
 
-## 📱 Uso del Sistema
-
-### Para Clientes
-1. **Navegar al catálogo** de servicios disponibles
-2. **Seleccionar plan** (servicio, perfiles, meses)
-3. **Agregar al carrito** y proceder al checkout
-4. **Completar formulario** con datos personales
-5. **Subir comprobante** de pago
-6. **Recibir accesos** por WhatsApp en 5-10 minutos
-
-### Para Administradores
-1. **Acceder al panel admin** con credenciales de administrador
-2. **Revisar órdenes pendientes** y en validación
-3. **Validar comprobantes** manualmente si es necesario
-4. **Aprobar/rechazar** pagos con un clic
-5. **Gestionar cuentas** y perfiles disponibles
-6. **Monitorear sistema** y estadísticas
-
-## 🏗️ Arquitectura del Sistema
-
-### Estructura de Directorios
-```
-streaming-system/
-├── app/                    # Frontend Next.js
-│   ├── components/        # Componentes React
-│   ├── store/            # Estado global (Zustand)
-│   └── globals.css       # Estilos globales
-├── backend/               # Backend Node.js
-│   ├── src/
-│   │   ├── config/       # Configuración
-│   │   ├── models/       # Modelos de base de datos
-│   │   ├── routes/       # Rutas de API
-│   │   ├── services/     # Lógica de negocio
-│   │   └── middleware/   # Middleware personalizado
-│   └── uploads/          # Archivos subidos
-└── docs/                 # Documentación
+### **Error de Dependencias**
+```bash
+# Reinstalar dependencias
+rm -rf node_modules package-lock.json
+npm install
 ```
 
-### Flujo de Datos
-```
-Cliente → Frontend → Backend → Base de Datos
-   ↓
-Comprobante → OCR → Validación → WhatsApp
-   ↓
-Admin Panel → Gestión → Asignación de Perfiles
+### **WhatsApp no se Conecta**
+```bash
+# Verificar que Chrome/Chromium esté instalado
+# Verificar permisos de red
+# Revisar logs del servidor
 ```
 
-## 🔐 Seguridad
+## 📊 Monitoreo y Mantenimiento
 
-- **Autenticación JWT** con refresh tokens
+### **Logs del Sistema**
+```bash
+# Backend logs
+tail -f backend/logs/app.log
+
+# WhatsApp logs
+tail -f backend/logs/whatsapp.log
+
+# Cron jobs logs
+tail -f backend/logs/cron.log
+```
+
+### **Backups Automáticos**
+- **Frecuencia:** Semanal (domingo 3:00 AM)
+- **Ubicación:** `backend/backups/`
+- **Retención:** Últimos 4 backups
+
+### **Tareas Programadas (Cron)**
+- **Recordatorios de renovación:** Diario 9:00 AM
+- **Verificación de perfiles:** Cada hora
+- **Limpieza de archivos:** Diario 2:00 AM
+- **Monitoreo WhatsApp:** Cada 30 minutos
+- **Backup de BD:** Semanal domingo 3:00 AM
+
+## 🔒 Seguridad
+
+### **Medidas Implementadas**
+- **Autenticación JWT** con expiración
 - **Encriptación bcrypt** para contraseñas
-- **Rate limiting** para prevenir abusos
-- **Validación de archivos** y sanitización
-- **CORS configurado** para producción
-- **Helmet.js** para headers de seguridad
+- **Validación de entrada** con express-validator
+- **Rate limiting** para prevenir spam
+- **CORS configurado** para orígenes específicos
+- **Helmet** para headers de seguridad
 
-## 📊 API Endpoints
+### **Roles de Usuario**
+- **Cliente:** Crear órdenes, subir comprobantes, ver historial
+- **Admin:** Gestión completa, aprobar/rechazar, ver estadísticas
 
-### Autenticación
-- `POST /api/auth/register` - Registro de usuario
-- `POST /api/auth/login` - Inicio de sesión
-- `POST /api/auth/refresh` - Renovar token
+## 📈 Escalabilidad
 
-### Órdenes
-- `POST /api/orders` - Crear nueva orden
-- `GET /api/orders` - Listar órdenes del usuario
-- `GET /api/orders/:id` - Obtener orden específica
-- `PUT /api/orders/:id/upload-proof` - Subir comprobante
+### **Optimizaciones Implementadas**
+- **Connection pooling** para PostgreSQL
+- **Compresión gzip** para respuestas
+- **Caché de recordatorios** para evitar spam
+- **Validación OCR** asíncrona
+- **Manejo de errores** granular
 
-### Administración
-- `GET /api/admin/orders` - Listar todas las órdenes
-- `PUT /api/admin/orders/:id/approve` - Aprobar orden
-- `PUT /api/admin/orders/:id/reject` - Rechazar orden
-- `GET /api/admin/dashboard` - Estadísticas del sistema
-
-### WhatsApp
-- `POST /api/whatsapp/send-access` - Enviar accesos
-- `GET /api/whatsapp/status` - Estado de conexión
-
-## 🤖 Servicios Automatizados
-
-### OCR Service
-- **Tesseract.js** para extracción de texto
-- **Validación automática** de montos y fechas
-- **Confianza configurable** para aprobación automática
-- **Fallback a validación manual** cuando es necesario
-
-### WhatsApp Service
-- **Venom Bot** para automatización
-- **Envío automático** de credenciales
-- **Recordatorios** de renovación
-- **Soporte automático** con comandos básicos
-
-### Cron Service
-- **Recordatorios** de vencimiento (3 días antes)
-- **Limpieza** de archivos temporales
-- **Verificación** de perfiles expirados
-- **Backup** automático de base de datos
-
-## 🧪 Testing
-
-```bash
-# Frontend
-npm run test
-
-# Backend
-cd backend
-npm test
-```
-
-## 📦 Despliegue
-
-### Frontend (Vercel/Netlify)
-```bash
-npm run build
-npm run start
-```
-
-### Backend (Docker)
-```dockerfile
-FROM node:18-alpine
-WORKDIR /app
-COPY package*.json ./
-RUN npm ci --only=production
-COPY . .
-EXPOSE 3001
-CMD ["npm", "start"]
-```
-
-### Variables de Producción
-```env
-NODE_ENV=production
-DB_HOST=tu_host_produccion
-DB_PASSWORD=password_seguro_produccion
-JWT_SECRET=secret_muy_largo_y_complejo
-CORS_ORIGIN=https://tu-dominio.com
-```
-
-## 🔧 Configuración Avanzada
-
-### WhatsApp Bot
-1. **Instalar dependencias** del sistema
-2. **Configurar Venom Bot** con tu número
-3. **Escanear código QR** para autenticación
-4. **Configurar respuestas automáticas**
-
-### OCR Personalizado
-- **Ajustar patrones** de extracción
-- **Configurar idiomas** soportados
-- **Personalizar reglas** de validación
-- **Optimizar confianza** para tu caso de uso
-
-### Base de Datos
-- **Índices optimizados** para consultas frecuentes
-- **Particionamiento** para grandes volúmenes
-- **Backup automático** con retención configurable
-- **Monitoreo** de performance
-
-## 📈 Monitoreo y Logs
-
-- **Morgan** para logs HTTP
-- **Winston** para logs de aplicación
-- **Métricas** de performance
-- **Alertas** automáticas para errores críticos
+### **Recomendaciones para Producción**
+- **Load balancer** para múltiples instancias
+- **Redis** para caché y sesiones
+- **CDN** para archivos estáticos
+- **Monitoreo** con herramientas como PM2
+- **Logs centralizados** con ELK Stack
 
 ## 🤝 Contribución
 
-1. **Fork** el proyecto
-2. **Crear rama** para tu feature (`git checkout -b feature/AmazingFeature`)
-3. **Commit** tus cambios (`git commit -m 'Add some AmazingFeature'`)
-4. **Push** a la rama (`git push origin feature/AmazingFeature`)
-5. **Abrir Pull Request**
+### **Estructura del Proyecto**
+```
+Streming2/
+├── app/                    # Frontend Next.js
+│   ├── auth/              # Páginas de autenticación
+│   ├── dashboard/         # Dashboard de usuario
+│   ├── admin/             # Panel de administración
+│   └── orders/            # Gestión de órdenes
+├── backend/               # Backend Node.js
+│   ├── src/
+│   │   ├── models/        # Modelos de base de datos
+│   │   ├── routes/        # Rutas de la API
+│   │   ├── services/      # Servicios (OCR, WhatsApp, Cron)
+│   │   └── middleware/    # Middleware de autenticación
+│   └── scripts/           # Scripts de utilidad
+└── components/            # Componentes React reutilizables
+```
+
+### **Convenciones de Código**
+- **ESLint** para linting de JavaScript/TypeScript
+- **Prettier** para formateo de código
+- **Conventional Commits** para mensajes de commit
+- **JSDoc** para documentación de funciones
+
+## 📞 Soporte
+
+### **Canales de Ayuda**
+- **Documentación:** Este README
+- **Issues:** GitHub Issues
+- **WhatsApp:** Integrado en el sistema
+- **Logs:** Archivos de log del servidor
+
+### **Comandos de Diagnóstico**
+```bash
+# Verificar estado del sistema
+curl http://localhost:3001/health
+
+# Verificar base de datos
+cd backend && node test-db.js
+
+# Verificar dependencias
+npm audit
+
+# Verificar logs
+tail -f backend/logs/*.log
+```
 
 ## 📄 Licencia
 
-Este proyecto está bajo la Licencia MIT - ver el archivo [LICENSE](LICENSE) para detalles.
+Este proyecto está bajo la Licencia MIT. Ver el archivo `LICENSE` para más detalles.
 
-## 🆘 Soporte
+## 🎯 Roadmap
 
-- **Documentación**: [docs/](docs/)
-- **Issues**: [GitHub Issues](https://github.com/tu-usuario/streaming-system/issues)
-- **Email**: soporte@streamingpro.com
-- **WhatsApp**: +1234567890
+### **Versión 1.1 (Próxima)**
+- [ ] Panel de analytics avanzado
+- [ ] Integración con más servicios de streaming
+- [ ] Sistema de referidos
+- [ ] API para aplicaciones móviles
 
-## 🙏 Agradecimientos
-
-- **Tesseract.js** por el servicio OCR
-- **Venom Bot** por la automatización de WhatsApp
-- **TailwindCSS** por el sistema de diseño
-- **Next.js** por el framework de React
-- **Express.js** por el servidor Node.js
+### **Versión 1.2 (Futura)**
+- [ ] Dashboard en tiempo real
+- [ ] Notificaciones push
+- [ ] Sistema de tickets de soporte
+- [ ] Integración con pasarelas de pago
 
 ---
 
-**Desarrollado con ❤️ por el equipo de StreamingPro**
+**🎉 ¡Gracias por usar StreamingPro!**
 
-*Sistema profesional para gestión de streaming - Simple, Seguro, Automatizado*
-# Streming
+Si tienes alguna pregunta o necesitas ayuda, no dudes en crear un issue o contactarnos.

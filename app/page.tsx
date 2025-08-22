@@ -8,11 +8,15 @@ import {
   UserGroupIcon,
   CheckCircleIcon,
   StarIcon,
-  TagIcon
+  TagIcon,
+  UserIcon,
+  ShoppingCartIcon
 } from '@heroicons/react/24/outline'
 import ServiceCard from '@/components/ServiceCard'
 import CartModal from '@/components/CartModal'
 import { useCartStore } from '@/store/cartStore'
+import { isAuthenticated } from '@/lib/api'
+import Link from 'next/link'
 
 const services = [
   {
@@ -49,6 +53,24 @@ const services = [
     description: 'Streaming + envíos gratis + música y más beneficios',
     price: 12.99,
     features: ['4K Ultra HD', '6 perfiles', 'Envíos gratis', 'Música incluida'],
+    popular: false
+  },
+  {
+    id: 5,
+    name: 'Paramount+',
+    logo: '🎭',
+    description: 'Contenido exclusivo de Paramount, CBS y más',
+    price: 6.99,
+    features: ['4K Ultra HD', '4 perfiles', 'Contenido deportivo', 'Noticias en vivo'],
+    popular: false
+  },
+  {
+    id: 6,
+    name: 'Apple TV+',
+    logo: '🍎',
+    description: 'Contenido original de Apple con la mejor calidad',
+    price: 5.99,
+    features: ['4K Dolby Vision', '6 perfiles', 'Contenido familiar', 'Sin anuncios'],
     popular: false
   }
 ]
@@ -91,6 +113,11 @@ export default function Home() {
   const [selectedProfiles, setSelectedProfiles] = useState(1)
   const { addToCart, cartItems } = useCartStore()
   const [isCartOpen, setIsCartOpen] = useState(false)
+  const [isAuthenticatedUser, setIsAuthenticatedUser] = useState(false)
+
+  useEffect(() => {
+    setIsAuthenticatedUser(isAuthenticated())
+  }, [])
 
   const handleAddToCart = (service: any) => {
     const pricing = calculateDiscounts(service.price, selectedMonths, selectedProfiles);
@@ -99,214 +126,319 @@ export default function Home() {
       ...service,
       months: selectedMonths,
       profiles: selectedProfiles,
-      totalPrice: pricing.finalPrice,
-      originalPrice: pricing.totalPrice,
-      savings: pricing.savings,
-      savingsPercentage: pricing.savingsPercentage
-    }
-    addToCart(item)
-    setIsCartOpen(true)
-  }
+      pricing
+    };
+    
+    addToCart(item);
+    setIsCartOpen(true);
+  };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-gray-50 to-gray-100">
+    <div className="min-h-screen bg-white">
       {/* Header */}
-      <header className="bg-white shadow-sm border-b border-gray-200">
+      <header className="bg-white shadow-sm border-b">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex justify-between items-center h-16">
+          <div className="flex justify-between items-center py-4">
             <div className="flex items-center">
-              <PlayIcon className="h-8 w-8 text-primary-600" />
-              <span className="ml-2 text-xl font-bold text-gray-900">StreamingPro</span>
+              <span className="text-3xl mr-3">🎬</span>
+              <h1 className="text-2xl font-bold text-gray-900">StreamingPro</h1>
             </div>
-            <div className="flex items-center space-x-4">
-              <button 
+            
+            <nav className="flex items-center space-x-6">
+              {isAuthenticatedUser ? (
+                <>
+                  <Link
+                    href="/dashboard"
+                    className="flex items-center text-gray-700 hover:text-indigo-600 transition-colors"
+                  >
+                    <UserIcon className="h-5 w-5 mr-2" />
+                    Mi Cuenta
+                  </Link>
+                  <Link
+                    href="/admin"
+                    className="flex items-center text-gray-700 hover:text-indigo-600 transition-colors"
+                  >
+                    <ShieldCheckIcon className="h-5 w-5 mr-2" />
+                    Admin
+                  </Link>
+                </>
+              ) : (
+                <>
+                  <Link
+                    href="/auth/login"
+                    className="text-gray-700 hover:text-indigo-600 transition-colors"
+                  >
+                    Iniciar Sesión
+                  </Link>
+                  <Link
+                    href="/auth/register"
+                    className="bg-indigo-600 text-white px-4 py-2 rounded-md hover:bg-indigo-700 transition-colors"
+                  >
+                    Registrarse
+                  </Link>
+                </>
+              )}
+              
+              <button
                 onClick={() => setIsCartOpen(true)}
-                className="relative p-2 text-gray-600 hover:text-primary-600 transition-colors"
+                className="relative flex items-center text-gray-700 hover:text-indigo-600 transition-colors"
               >
-                <svg className="h-6 w-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 3h2l.4 2M7 13h10l4-8H5.4m0 0L7 13m0 0l-2.5 5M7 13l2.5 5m6-5v6a2 2 0 01-2 2H9a2 2 0 01-2-2v-6m6 0V9a2 2 0 00-2-2H9a2 2 0 00-2 2v4.01" />
-                </svg>
+                <ShoppingCartIcon className="h-6 w-6" />
                 {cartItems.length > 0 && (
-                  <span className="absolute -top-1 -right-1 bg-primary-600 text-white text-xs rounded-full h-5 w-5 flex items-center justify-center">
+                  <span className="absolute -top-2 -right-2 bg-red-500 text-white text-xs rounded-full h-5 w-5 flex items-center justify-center">
                     {cartItems.length}
                   </span>
                 )}
               </button>
-              <button className="btn-primary">Iniciar Sesión</button>
-            </div>
+            </nav>
           </div>
         </div>
       </header>
 
       {/* Hero Section */}
-      <section className="py-20 bg-gradient-to-r from-primary-600 to-primary-700 text-white">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
-          <h1 className="text-4xl md:text-6xl font-bold mb-6">
-            Accesos Premium de Streaming
-          </h1>
-          <p className="text-xl md:text-2xl mb-8 text-primary-100 max-w-3xl mx-auto">
-            Disfruta de Netflix, Disney+, HBO Max y más plataformas premium con precios increíbles y activación instantánea
-          </p>
-          
-          {/* Banner de descuentos */}
-          <div className="bg-white/10 backdrop-blur-sm rounded-2xl p-6 mb-12 max-w-4xl mx-auto">
-            <div className="flex items-center justify-center mb-4">
-              <TagIcon className="h-8 w-8 text-yellow-300 mr-3" />
-              <h3 className="text-2xl font-bold text-yellow-300">¡Descuentos Especiales!</h3>
-            </div>
-            <div className="grid md:grid-cols-3 gap-6 text-center">
-              <div>
-                <div className="text-3xl font-bold text-yellow-300">10%</div>
-                <div className="text-sm">3 meses</div>
+      <section className="bg-gradient-to-r from-indigo-600 to-purple-600 text-white">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-20">
+          <div className="text-center">
+            <h1 className="text-4xl md:text-6xl font-bold mb-6">
+              Acceso Premium a Streaming
+            </h1>
+            <p className="text-xl md:text-2xl mb-8 text-indigo-100">
+              Disfruta de Netflix, Disney+, HBO Max y más por una fracción del precio
+            </p>
+            <div className="flex flex-wrap justify-center gap-4 mb-8">
+              <div className="bg-white bg-opacity-20 rounded-lg px-6 py-3">
+                <div className="text-2xl font-bold">🎯</div>
+                <div className="text-sm">Precios Bajos</div>
               </div>
-              <div>
-                <div className="text-3xl font-bold text-yellow-300">20%</div>
-                <div className="text-sm">6 meses</div>
+              <div className="bg-white bg-opacity-20 rounded-lg px-6 py-3">
+                <div className="text-2xl font-bold">⚡</div>
+                <div className="text-sm">Acceso Inmediato</div>
               </div>
-              <div>
-                <div className="text-3xl font-bold text-yellow-300">35%</div>
-                <div className="text-sm">12 meses</div>
+              <div className="bg-white bg-opacity-20 rounded-lg px-6 py-3">
+                <div className="text-2xl font-bold">🔒</div>
+                <div className="text-sm">100% Seguro</div>
+              </div>
+              <div className="bg-white bg-opacity-20 rounded-lg px-6 py-3">
+                <div className="text-2xl font-bold">📱</div>
+                <div className="text-sm">WhatsApp</div>
               </div>
             </div>
-          </div>
-          
-          <div className="flex flex-wrap justify-center gap-4 mb-12">
-            <div className="flex items-center space-x-2">
-              <CheckCircleIcon className="h-6 w-6 text-success-400" />
-              <span>Activación en 5 minutos</span>
-            </div>
-            <div className="flex items-center space-x-2">
-              <ShieldCheckIcon className="h-6 w-6 text-success-400" />
-              <span>100% Seguro</span>
-            </div>
-            <div className="flex items-center space-x-2">
-              <ClockIcon className="h-6 w-6 text-success-400" />
-              <span>Soporte 24/7</span>
+            <div className="space-x-4">
+              <Link
+                href="#services"
+                className="bg-white text-indigo-600 px-8 py-3 rounded-lg font-semibold hover:bg-gray-100 transition-colors inline-block"
+              >
+                Ver Servicios
+              </Link>
+              {!isAuthenticatedUser && (
+                <Link
+                  href="/auth/register"
+                  className="border-2 border-white text-white px-8 py-3 rounded-lg font-semibold hover:bg-white hover:text-indigo-600 transition-colors inline-block"
+                >
+                  Crear Cuenta
+                </Link>
+              )}
             </div>
           </div>
         </div>
       </section>
 
       {/* Features Section */}
-      <section className="py-16 bg-white">
+      <section className="py-20 bg-gray-50">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="text-center mb-12">
+          <div className="text-center mb-16">
             <h2 className="text-3xl font-bold text-gray-900 mb-4">
               ¿Por qué elegirnos?
             </h2>
-            <p className="text-lg text-gray-600 max-w-2xl mx-auto">
-              Ofrecemos la mejor experiencia en streaming con precios competitivos y servicio de calidad
+            <p className="text-xl text-gray-600">
+              Ofrecemos la mejor experiencia en servicios de streaming
             </p>
           </div>
           
-          <div className="grid md:grid-cols-3 gap-8">
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
             <div className="text-center">
-              <div className="bg-primary-100 w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-4">
-                <StarIcon className="h-8 w-8 text-primary-600" />
+              <div className="bg-indigo-100 rounded-full w-16 h-16 flex items-center justify-center mx-auto mb-4">
+                <ClockIcon className="h-8 w-8 text-indigo-600" />
               </div>
-              <h3 className="text-xl font-semibold text-gray-900 mb-2">Calidad Premium</h3>
-              <p className="text-gray-600">Accesos a cuentas premium con la mejor calidad de video disponible</p>
+              <h3 className="text-xl font-semibold text-gray-900 mb-2">Acceso Inmediato</h3>
+              <p className="text-gray-600">Recibe tus credenciales por WhatsApp en minutos después de la aprobación</p>
             </div>
             
             <div className="text-center">
-              <div className="bg-success-100 w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-4">
-                <ShieldCheckIcon className="h-8 w-8 text-success-600" />
+              <div className="bg-indigo-100 rounded-full w-16 h-16 flex items-center justify-center mx-auto mb-4">
+                <ShieldCheckIcon className="h-8 w-8 text-indigo-600" />
               </div>
               <h3 className="text-xl font-semibold text-gray-900 mb-2">100% Seguro</h3>
-              <p className="text-gray-600">Transacciones seguras y cuentas verificadas para tu tranquilidad</p>
+              <p className="text-gray-600">Pagos verificados con OCR y validación manual para tu seguridad</p>
             </div>
             
             <div className="text-center">
-              <div className="bg-warning-100 w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-4">
-                <ClockIcon className="h-8 w-8 text-warning-600" />
+              <div className="bg-indigo-100 rounded-full w-16 h-16 flex items-center justify-center mx-auto mb-4">
+                <UserGroupIcon className="h-8 w-8 text-indigo-600" />
               </div>
-              <h3 className="text-xl font-semibold text-gray-900 mb-2">Activación Rápida</h3>
-              <p className="text-gray-600">Recibe tus accesos en menos de 5 minutos después del pago</p>
+              <h3 className="text-xl font-semibold text-gray-900 mb-2">Múltiples Perfiles</h3>
+              <p className="text-gray-600">Comparte con familia y amigos, hasta 6 perfiles por cuenta</p>
             </div>
           </div>
         </div>
       </section>
 
       {/* Services Section */}
-      <section className="py-16 bg-gray-50">
+      <section id="services" className="py-20">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="text-center mb-12">
+          <div className="text-center mb-16">
             <h2 className="text-3xl font-bold text-gray-900 mb-4">
               Nuestros Servicios
             </h2>
-            <p className="text-lg text-gray-600 max-w-2xl mx-auto">
-              Elige el plan que mejor se adapte a tus necesidades con descuentos especiales
+            <p className="text-xl text-gray-600">
+              Selecciona el número de perfiles y meses para ver los precios
             </p>
           </div>
 
-          {/* Filters */}
-          <div className="bg-white rounded-xl p-6 mb-8 shadow-sm border border-gray-200">
-            <div className="grid md:grid-cols-2 gap-6">
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Número de Perfiles
-                </label>
-                <select 
-                  value={selectedProfiles} 
-                  onChange={(e) => setSelectedProfiles(Number(e.target.value))}
-                  className="input-field"
-                >
-                  <option value={1}>1 Perfil</option>
-                  <option value={2}>2 Perfiles</option>
-                  <option value={3}>3 Perfiles</option>
-                  <option value={4}>4 Perfiles</option>
-                </select>
-              </div>
-              
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Duración en Meses
-                </label>
-                <select 
-                  value={selectedMonths} 
-                  onChange={(e) => setSelectedMonths(Number(e.target.value))}
-                  className="input-field"
-                >
-                  <option value={1}>1 Mes</option>
-                  <option value={3}>3 Meses (10% descuento)</option>
-                  <option value={6}>6 Meses (20% descuento)</option>
-                  <option value={12}>12 Meses (35% descuento)</option>
-                </select>
-              </div>
+          {/* Configuration Controls */}
+          <div className="flex flex-wrap justify-center gap-6 mb-12">
+            <div className="text-center">
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                Número de Perfiles
+              </label>
+              <select
+                value={selectedProfiles}
+                onChange={(e) => setSelectedProfiles(Number(e.target.value))}
+                className="border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-indigo-500"
+              >
+                <option value={1}>1 Perfil</option>
+                <option value={2}>2 Perfiles</option>
+                <option value={3}>3 Perfiles</option>
+                <option value={4}>4 Perfiles</option>
+              </select>
             </div>
             
-            {/* Información de descuentos */}
-            {selectedMonths > 1 && (
-              <div className="mt-4 p-4 bg-green-50 border border-green-200 rounded-lg">
-                <div className="flex items-center">
-                  <TagIcon className="h-5 w-5 text-green-600 mr-2" />
-                  <span className="text-sm font-medium text-green-800">
-                    ¡Descuento aplicado! {selectedMonths === 3 ? '10%' : selectedMonths === 6 ? '20%' : '35%'} de descuento por contrato de {selectedMonths} meses
-                  </span>
-                </div>
-              </div>
-            )}
+            <div className="text-center">
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                Duración
+              </label>
+              <select
+                value={selectedMonths}
+                onChange={(e) => setSelectedMonths(Number(e.target.value))}
+                className="border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-indigo-500"
+              >
+                <option value={1}>1 Mes</option>
+                <option value={3}>3 Meses</option>
+                <option value={6}>6 Meses</option>
+                <option value={12}>12 Meses</option>
+              </select>
+            </div>
           </div>
 
           {/* Services Grid */}
-          <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-6">
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
             {services.map((service) => (
-              <ServiceCard 
+              <ServiceCard
                 key={service.id}
                 service={service}
                 selectedMonths={selectedMonths}
                 selectedProfiles={selectedProfiles}
                 onAddToCart={handleAddToCart}
+                calculateDiscounts={calculateDiscounts}
               />
             ))}
           </div>
         </div>
       </section>
 
+      {/* CTA Section */}
+      <section className="bg-indigo-600 text-white py-20">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
+          <h2 className="text-3xl font-bold mb-4">
+            ¿Listo para empezar?
+          </h2>
+          <p className="text-xl mb-8 text-indigo-100">
+            Únete a miles de usuarios que ya disfrutan de streaming premium
+          </p>
+          <div className="space-x-4">
+            {!isAuthenticatedUser ? (
+              <>
+                <Link
+                  href="/auth/register"
+                  className="bg-white text-indigo-600 px-8 py-3 rounded-lg font-semibold hover:bg-gray-100 transition-colors inline-block"
+                >
+                  Crear Cuenta Gratis
+                </Link>
+                <Link
+                  href="/auth/login"
+                  className="border-2 border-white text-white px-8 py-3 rounded-lg font-semibold hover:bg-white hover:text-indigo-600 transition-colors inline-block"
+                >
+                  Iniciar Sesión
+                </Link>
+              </>
+            ) : (
+              <Link
+                href="/dashboard"
+                className="bg-white text-indigo-600 px-8 py-3 rounded-lg font-semibold hover:bg-gray-100 transition-colors inline-block"
+              >
+                Ir a Mi Cuenta
+              </Link>
+            )}
+          </div>
+        </div>
+      </section>
+
+      {/* Footer */}
+      <footer className="bg-gray-900 text-white py-12">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="grid grid-cols-1 md:grid-cols-4 gap-8">
+            <div>
+              <div className="flex items-center mb-4">
+                <span className="text-2xl mr-2">🎬</span>
+                <span className="text-xl font-bold">StreamingPro</span>
+              </div>
+              <p className="text-gray-400">
+                Tu destino para acceso premium a streaming a precios increíbles.
+              </p>
+            </div>
+            
+            <div>
+              <h3 className="text-lg font-semibold mb-4">Servicios</h3>
+              <ul className="space-y-2 text-gray-400">
+                <li>Netflix</li>
+                <li>Disney+</li>
+                <li>HBO Max</li>
+                <li>Amazon Prime</li>
+              </ul>
+            </div>
+            
+            <div>
+              <h3 className="text-lg font-semibold mb-4">Soporte</h3>
+              <ul className="space-y-2 text-gray-400">
+                <li>WhatsApp 24/7</li>
+                <li>Centro de Ayuda</li>
+                <li>FAQ</li>
+                <li>Contacto</li>
+              </ul>
+            </div>
+            
+            <div>
+              <h3 className="text-lg font-semibold mb-4">Legal</h3>
+              <ul className="space-y-2 text-gray-400">
+                <li>Términos de Servicio</li>
+                <li>Política de Privacidad</li>
+                <li>Reembolsos</li>
+                <li>Garantías</li>
+              </ul>
+            </div>
+          </div>
+          
+          <div className="border-t border-gray-800 mt-8 pt-8 text-center text-gray-400">
+            <p>&copy; 2024 StreamingPro. Todos los derechos reservados.</p>
+          </div>
+        </div>
+      </footer>
+
       {/* Cart Modal */}
-      <CartModal 
-        isOpen={isCartOpen} 
-        onClose={() => setIsCartOpen(false)} 
+      <CartModal
+        isOpen={isCartOpen}
+        onClose={() => setIsCartOpen(false)}
+        cartItems={cartItems}
       />
     </div>
   )

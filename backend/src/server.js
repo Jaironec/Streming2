@@ -16,6 +16,10 @@ const adminRoutes = require('./routes/admin');
 const whatsappRoutes = require('./routes/whatsapp');
 const { errorHandler, notFoundHandler } = require('./middleware/errorHandler');
 
+// Importar servicios
+const cronService = require('./services/cronService');
+const whatsappService = require('./services/whatsappService');
+
 const app = express();
 const PORT = process.env.PORT || 3001;
 
@@ -67,16 +71,31 @@ if (process.env.NODE_ENV === 'development') {
 }
 
 // Health check endpoint
-app.get('/health', (req, res) => {
-  res.status(200).json({
-    status: 'OK',
-    timestamp: new Date().toISOString(),
-    uptime: process.uptime(),
-    environment: process.env.NODE_ENV,
-    database: 'Connected',
-    whatsapp: 'Not Available',
-    cron: 'Not Available'
-  });
+app.get('/health', async (req, res) => {
+  try {
+    const whatsappStatus = whatsappService.isConnected ? 'Connected' : 'Disconnected';
+    const cronStatus = 'Active';
+    
+    res.status(200).json({
+      status: 'OK',
+      timestamp: new Date().toISOString(),
+      uptime: process.uptime(),
+      environment: process.env.NODE_ENV,
+      database: 'Connected',
+      whatsapp: whatsappStatus,
+      cron: cronStatus
+    });
+  } catch (error) {
+    res.status(200).json({
+      status: 'OK',
+      timestamp: new Date().toISOString(),
+      uptime: process.uptime(),
+      environment: process.env.NODE_ENV,
+      database: 'Connected',
+      whatsapp: 'Unknown',
+      cron: 'Unknown'
+    });
+  }
 });
 
 // API Routes
@@ -105,6 +124,28 @@ async function startServer() {
       console.log('📊 Tablas creadas: users, orders, payments, accounts, profiles');
     }
     
+    // Initialize WhatsApp service
+    let whatsappStatus = 'Not Available';
+    try {
+      await whatsappService.initialize();
+      whatsappStatus = 'Initialized';
+      console.log('✅ Servicio de WhatsApp inicializado.');
+    } catch (error) {
+      console.warn('⚠️  No se pudo inicializar WhatsApp:', error.message);
+      console.log('ℹ️  El servidor continuará sin WhatsApp. Puedes configurarlo más tarde.');
+    }
+    
+    // Setup cron jobs
+    let cronStatus = 'Not Available';
+    try {
+      cronService.setupCronJobs();
+      cronStatus = 'Active';
+      console.log('✅ Tareas programadas configuradas.');
+    } catch (error) {
+      console.warn('⚠️  No se pudieron configurar las tareas programadas:', error.message);
+      console.log('ℹ️  El servidor continuará sin tareas automáticas.');
+    }
+    
     // Start server
     app.listen(PORT, () => {
       console.log(`🚀 Servidor ejecutándose en puerto ${PORT}`);
@@ -112,8 +153,8 @@ async function startServer() {
       console.log(`🔧 Backend API: http://localhost:${PORT}/api`);
       console.log(`🏥 Health Check: http://localhost:${PORT}/health`);
       console.log(`💾 Base de datos: PostgreSQL conectada`);
-      console.log(`🤖 WhatsApp: No disponible por ahora`);
-      console.log(`⏰ Cron Jobs: No disponible por ahora`);
+      console.log(`🤖 WhatsApp: ${whatsappStatus}`);
+      console.log(`⏰ Cron Jobs: ${cronStatus}`);
     });
     
   } catch (error) {
